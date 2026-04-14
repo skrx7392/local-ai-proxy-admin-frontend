@@ -39,9 +39,24 @@ describe('BFF proxy at /api/admin/[...path]', () => {
     vi.mocked(getToken).mockReset();
   });
 
+  it('returns 403 when X-Requested-With header is missing (CSRF guard)', async () => {
+    const req = buildRequest({}); // no X-Requested-With
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await GET(req as any, {
+      params: Promise.resolve({ path: ['users'] }),
+    });
+
+    expect(response.status).toBe(403);
+    // CSRF check runs before getToken() so we never even read the cookie.
+    expect(vi.mocked(getToken)).not.toHaveBeenCalled();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when no backendToken is present in the JWT', async () => {
     vi.mocked(getToken).mockResolvedValueOnce(null);
-    const req = buildRequest({});
+    const req = buildRequest({
+      headers: { 'x-requested-with': 'XMLHttpRequest' },
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const response = await GET(req as any, {
       params: Promise.resolve({ path: ['users'] }),
@@ -66,6 +81,7 @@ describe('BFF proxy at /api/admin/[...path]', () => {
     const req = buildRequest({
       url: 'http://admin.local/api/admin/users?page=2',
       headers: {
+        'x-requested-with': 'XMLHttpRequest',
         authorization: 'Bearer attacker-supplied',
         cookie: 'authjs.session-token=abc',
         'x-admin-key': 'attacker-key',

@@ -25,6 +25,16 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
     return NextResponse.json({ code: 'server_misconfigured' }, { status: 500 });
   }
 
+  // CSRF guard: admin requests must come from our own client, which sets
+  // X-Requested-With. A cross-site form POST can't set a custom header
+  // without a CORS preflight, which we never grant — so a missing/wrong
+  // header means "not from our app". Applies to mutating + GET alike
+  // because admin GETs return sensitive data and should not be fetch-able
+  // from other origins either.
+  if (req.headers.get('x-requested-with') !== 'XMLHttpRequest') {
+    return NextResponse.json({ code: 'csrf_check_failed' }, { status: 403 });
+  }
+
   // Read the full, un-stripped JWT — session callback projection would have
   // dropped backendToken.
   const token = await getToken({ req, secret: AUTH_SECRET });

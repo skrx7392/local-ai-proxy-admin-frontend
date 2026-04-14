@@ -1,3 +1,5 @@
+import { signOut } from 'next-auth/react';
+
 import { ApiError } from './errors';
 
 export type ApiFetchOptions = {
@@ -7,8 +9,25 @@ export type ApiFetchOptions = {
   signal?: AbortSignal;
 };
 
+// Guarded so a burst of concurrent 401s doesn't trigger N parallel signOut
+// round-trips — only the first observer kicks off the logout.
+let sessionExpiredInFlight = false;
+
+function handleSessionExpired(): void {
+  if (typeof window === 'undefined' || sessionExpiredInFlight) return;
+  sessionExpiredInFlight = true;
+  const callbackUrl = `/login?callbackUrl=${encodeURIComponent(
+    window.location.pathname + window.location.search,
+  )}`;
+  // Fire-and-forget; signOut triggers events.signOut (best-effort backend
+  // logout) then navigates the browser to /login.
+  void signOut({ callbackUrl, redirect: true });
+}
+
 // PR B ships a thin client so login error paths and future hooks have a
-// shared entry point. Full envelope + 401-toast plumbing lands in PR C.
+// shared entry point. Full envelope + toast polish lands in PR C, but the
+// 401 → signOut branch is wired up now so a revoked/expired backend
+// session can't leave a stale encrypted JWT cookie in place.
 export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Promise<T> {
   const url = new URL(`/api/admin${path}`, window.location.origin);
   if (opts.params) {
@@ -39,6 +58,7 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
     } catch {
       // swallow; keep generic error below
     }
+    if (response.status === 401) handleSessionExpired();
     throw new ApiError(
       response.status,
       body.code ?? 'unknown_error',
