@@ -104,46 +104,66 @@ Design system is owned by the admin frontend. Implemented as Chakra v3 tokens + 
 ### 1. Brand Identity
 
 - **Product name**: `local-ai admin`
-- **Tone**: data-dense, fast, trustworthy. Reference: Linear, Retool, Plane. Anti-reference: generic shadcn-black, consumer SaaS gradients.
-- **Dark-mode first**; light mode available and equally polished.
-- **Distinctive without being flashy** — one accent color, disciplined typography, confident use of whitespace, tabular numerals everywhere.
+- **Tone**: warm data density. Confident, fast, human. References: Flatlogic Light Blue (gradient-glass visual DNA), Linear / Retool (information density). Anti-reference: flat shadcn-gray, consumer SaaS hero gradients.
+- **Dual-mode, gradient-canvas**: rich teal→violet gradient for dark; pastel blue→indigo→violet gradient for light. Not "dark mode first" — both modes are equals and neither falls back to flat neutrals.
+- **Distinctive through surface, not chrome**: the gradient canvas + translucent glass cards carry the identity. Inside cards, restrained typography and tabular numerals.
 
 ### 2. Color Tokens
 
-#### Base palette (raw tokens)
+#### Canvas gradients (per mode)
+
+| Mode | Gradient |
+|---|---|
+| Dark | `linear-gradient(135deg, #0f2027 0%, #2c5364 50%, #4568dc 100%)` |
+| Light | `linear-gradient(135deg, #dbeafe 0%, #c7d2fe 50%, #e9d5ff 100%)` |
+
+The gradient is applied to `<body>` and kept fixed (`background-attachment: fixed`) so scrolling content doesn't drag the gradient.
+
+#### Raw scales (11-step each)
 
 | Scale | Role | Notes |
 |---|---|---|
-| `slate.50` → `slate.950` | 11-step neutral, slight cool tilt, NOT pure black/white | Perceptually even steps |
-| `accent.50` → `accent.950` | Desaturated blue accent, mid-saturation | ~hsl(220, 50%, 55%) midpoint |
-| `success.*` | Muted green | ~hsl(150, 45%, 45%) midpoint |
-| `warn.*` | Amber, not orange | ~hsl(40, 80%, 55%) midpoint |
-| `danger.*` | Desaturated red, not crimson | ~hsl(355, 55%, 55%) midpoint |
+| `slate.50` → `slate.950` | Neutral, slight cool tilt; used behind opaque content and inside light-mode cards | Perceptually even steps |
+| `accent.50` → `accent.950` | Indigo accent, midpoint `~hsl(239, 84%, 67%)` i.e. `#4f46e5` | For CTAs, focus rings, badges |
+| `success.*` | Muted green, midpoint `~hsl(150, 45%, 45%)` | |
+| `warn.*` | Amber, midpoint `~hsl(40, 80%, 55%)` | |
+| `danger.*` | Desaturated red, midpoint `~hsl(355, 55%, 55%)` | |
 
-No traffic-light saturation. Everything one notch muted for comfort during long admin sessions.
-
-#### Semantic tokens
-
-| Token | Dark | Light | Use |
-|---|---|---|---|
-| `bg.canvas` | `slate.950` | `slate.50` | Page background |
-| `bg.surface` | `slate.900` | `white` | Cards, panels |
-| `bg.subtle` | `slate.800` | `slate.100` | Nested panels, code blocks, table hover |
-| `bg.muted` | `slate.850` | `slate.50` | Input background |
-| `fg.default` | `slate.50` | `slate.900` | Primary text |
-| `fg.muted` | `slate.400` | `slate.600` | Secondary text, labels |
-| `fg.subtle` | `slate.500` | `slate.500` | Captions, timestamps |
-| `fg.onAccent` | `white` | `white` | Text on accent bg |
-| `border.default` | `slate.800` | `slate.200` | Standard borders |
-| `border.subtle` | `slate.850` | `slate.100` | Table row dividers |
-| `border.focus` | `accent.400` | `accent.500` | Focus rings |
-| `accent.solid` | `accent.500` | `accent.600` | Primary CTAs |
-| `accent.muted` | `accent.900` | `accent.50` | Badge/tag backgrounds |
-| `accent.emphasis` | `accent.300` | `accent.700` | Hover text on accent |
+No neon/traffic-light saturation. Everything one notch muted for long admin sessions.
 
 #### Data visualization palette
 
-Separate from UI colors. 10 qualitative colors, colorblind-safe (verified against Deuteranopia + Protanopia simulations). Sequential and diverging scales for heatmaps/deltas. Defined once in `src/theme/dataViz.ts`, reused by all charts.
+Shared across both modes (tuned to sit on either gradient with ≥ 3:1 contrast against the mid-gradient color). Colorblind-verified (Deuteranopia + Protanopia). 10 qualitative colors:
+
+```
+#60a5fa  #a78bfa  #34d399  #fbbf24  #fb7185
+#22d3ee  #f472b6  #4ade80  #f59e0b  #818cf8
+```
+
+Defined once in `src/theme/dataViz.ts`, reused by all charts. Sequential and diverging scales for heatmaps/deltas are derived from the accent scale plus a teal anchor.
+
+#### Semantic tokens
+
+| Token | Dark (over V2 gradient) | Light (over V5 gradient) | Use |
+|---|---|---|---|
+| `bg.canvas` | V2 gradient | V5 gradient | `<body>`; never a flat color |
+| `bg.glass.sidebar` | `rgba(255,255,255,0.06)` | `rgba(255,255,255,0.50)` | Sidebar panel |
+| `bg.glass.subtle` | `rgba(255,255,255,0.05)` | `rgba(255,255,255,0.70)` | Table row hover, nested panels |
+| `bg.glass.surface` | `rgba(255,255,255,0.10)` | `rgba(255,255,255,0.88)` | Default cards, inputs |
+| `bg.glass.elevated` | `rgba(255,255,255,0.18)` | `rgba(255,255,255,0.95)` | Dialogs, popovers, menus |
+| `bg.glass.opaque` (fallback) | `#1a1f3a` | `#ffffff` | Used via `@supports not (backdrop-filter)` |
+| `fg.default` | `rgba(255,255,255,0.94)` | `rgba(15,23,42,0.92)` | Primary text |
+| `fg.muted` | `rgba(255,255,255,0.68)` | `rgba(15,23,42,0.65)` | Secondary text, labels |
+| `fg.subtle` | `rgba(255,255,255,0.45)` | `rgba(15,23,42,0.45)` | Captions, timestamps |
+| `fg.onAccent` | `#ffffff` | `#ffffff` | Text on accent fills |
+| `border.glass` | `rgba(255,255,255,0.18)` | `rgba(15,23,42,0.08)` | Glass card outline |
+| `border.subtle` | `rgba(255,255,255,0.10)` | `rgba(15,23,42,0.05)` | Table row dividers |
+| `border.focus` | `accent.300` (`#a5b4fc`) | `accent.500` (`#6366f1`) | Focus rings |
+| `accent.solid` | `linear-gradient(135deg, #4f46e5, #7c3aed)` | `linear-gradient(135deg, #4f46e5, #7c3aed)` | Primary CTAs |
+| `accent.muted` | `rgba(79,70,229,0.22)` | `rgba(79,70,229,0.12)` | Badge backgrounds |
+| `accent.emphasis` | `#a5b4fc` | `#4338ca` | Hover text on accent-muted |
+
+Light mode uses solid-white cards with very high opacity (88/95%) because translucent white glass over a light gradient doesn't provide enough contrast. Dark mode leans into low-opacity glass (8/10/18%) where the blur does the heavy lifting.
 
 ### 3. Typography
 
@@ -167,7 +187,7 @@ Both self-hosted via `next/font` (no external CDN).
 | `code.md` | 14/20 | 400 | Inline code, IDs |
 | `code.sm` | 13/18 | 400 | Dense code |
 
-Global: `font-feature-settings: 'tnum' 1, 'cv11' 1;` for tabular numerals + friendlier Inter character variants.
+Global: `font-feature-settings: 'tnum' 1, 'cv11' 1;` for tabular numerals + friendlier Inter character variants. Letter-spacing tightened by `-0.01em` on `display` and `heading.lg` only.
 
 ### 4. Spacing
 
@@ -181,116 +201,198 @@ Rhythm rules:
 
 ### 5. Radii
 
+Bumped relative to flat designs — glass reads better with a little more curvature.
+
 | Token | Value | Use |
 |---|---|---|
 | `none` | 0 | — |
-| `sm` | 4px | Badges, inline tags, small inputs |
-| `md` | 8px | Buttons, inputs, cards (default) |
-| `lg` | 12px | Dialogs, large panels |
+| `sm` | 4px | Badges, inline tags |
+| `md` | 10px | Buttons, inputs, small cards |
+| `lg` | 14px | Default cards, panels |
+| `xl` | 20px | Dialogs, hero surfaces |
 | `full` | 9999 | Pills, avatars |
 
-### 6. Elevation / Shadows
+### 6. Glass Surfaces & Elevation
 
-Dark mode: rely on subtle inner strokes + slight top-light highlight, not heavy drop shadows.
+Glass is the primary surface language. Four tiers, each mapped to a semantic token:
+
+| Tier | Blur | Dark opacity | Light opacity | Use |
+|---|---|---|---|---|
+| `glass.subtle` | 10px | 5% white | 70% white | Row hover, nested blocks |
+| `glass.surface` | 18px | 10% white | 88% white | Default cards |
+| `glass.elevated` | 24px | 18% white | 95% white | Dialogs, popovers, menus |
+| `glass.sidebar` | 14px | 6% white | 50% white | Sidebar panel |
+
+All glass uses `backdrop-filter: blur(X) saturate(1.2);` with the matching `-webkit-backdrop-filter`. Feature fallback:
+
+```css
+@supports not (backdrop-filter: blur(1px)) {
+  .glass-surface { background: var(--bg-glass-opaque); }
+}
+```
+
+Shadows sit on top of glass, not inside:
 
 | Token | Dark | Light |
 |---|---|---|
-| `e0` | 1px inset `slate.800` | none |
-| `e1` | `e0` + very soft `0 1px 2px rgba(0,0,0,0.3)` | `0 1px 2px rgba(0,0,0,0.05)` |
-| `e2` | `e0` + `0 4px 12px rgba(0,0,0,0.4)` | `0 4px 12px rgba(0,0,0,0.08)` |
-| `e3` | `e0` + `0 12px 32px rgba(0,0,0,0.5)` | `0 12px 32px rgba(0,0,0,0.12)` |
+| `e0` | inset 0 1px 0 `rgba(255,255,255,0.08)`, 0 1px 2px `rgba(15,23,42,0.2)` | 0 1px 2px `rgba(15,23,42,0.05)` |
+| `e1` | `e0` + 0 4px 12px `rgba(15,23,42,0.25)` | 0 4px 12px `rgba(15,23,42,0.08)` |
+| `e2` | `e0` + 0 8px 24px `rgba(15,23,42,0.35)` | 0 8px 24px `rgba(15,23,42,0.12)` |
+| `e3` | `e0` + 0 16px 48px `rgba(15,23,42,0.45)` | 0 16px 48px `rgba(15,23,42,0.18)` |
 
 Usage: `e0` = cards (default), `e1` = hover lift, `e2` = dropdowns/popovers, `e3` = dialogs.
 
-### 7. Motion
+### 7. Motion & Animations
 
-| Token | Value | Use |
+Motion is a first-class part of the system. All tokens live in `src/theme/animations.ts` and map to Chakra v3 transition tokens plus CSS `@keyframes` for the complex cases.
+
+**Global principles**:
+- `prefers-reduced-motion: reduce` → disable all `transform` animations; keep opacity-only transitions ≤ 200ms.
+- Prefer `transform` + `opacity` over layout properties for 60fps.
+- No motion longer than 360ms — anything slower feels sluggish in an admin tool.
+
+**Tokens**:
+
+| Token | Value |
+|---|---|
+| `duration.xs` | 80ms |
+| `duration.sm` | 140ms |
+| `duration.md` | 220ms |
+| `duration.lg` | 320ms |
+| `ease.standard` | `cubic-bezier(0.2, 0, 0, 1)` |
+| `ease.emphasized` | `cubic-bezier(0.3, 0, 0.1, 1)` |
+| `ease.decelerate` | `cubic-bezier(0, 0, 0.1, 1)` |
+| `ease.accelerate` | `cubic-bezier(0.3, 0, 1, 1)` |
+
+**Named animations** (exported from `animations.ts` as keyframe + preset-props pairs):
+
+| Name | Trigger | Spec |
 |---|---|---|
-| `duration.fast` | 120ms | Hover, focus, small state |
-| `duration.base` | 180ms | Panel reveal, tab switch |
-| `duration.slow` | 240ms | Dialog, sheet |
-| `ease.standard` | `cubic-bezier(0.2, 0, 0, 1)` | Default |
-| `ease.emphasized` | `cubic-bezier(0.3, 0, 0.1, 1)` | Entrances |
+| `fade` | Route mount, content reveal | `opacity 0→1`, 220ms, `ease.standard` |
+| `rise` | Card/panel mount | `opacity 0→1` + `translateY(8px → 0)`, 220ms, `ease.decelerate` |
+| `pop` | Toast, popover, menu enter | `opacity 0→1` + `scale(0.96 → 1)`, 180ms, `ease.emphasized` |
+| `slideIn` | Dialog, drawer | `opacity 0→1` + `translateY(24px → 0)`, 320ms, `ease.emphasized` |
+| `shimmer` | Skeleton loading | diagonal gradient sweep across element, 1400ms infinite linear |
+| `pulse` | Subtle attention (health dot warn) | `opacity 0.6 → 1 → 0.6`, 2000ms `ease-in-out` infinite |
+| `countUp` | `StatCard` value on mount | numeric interpolation 0 → target, 600ms `ease-out` |
+| `press` | Button active | `scale(1 → 0.98)`, 80ms, `ease.standard` |
+| `lift` | Card hover | `translateY(0 → -2px)` + shadow `e0 → e1`, 140ms, `ease.standard` |
 
-Always respect `prefers-reduced-motion: reduce` — disable transforms, keep opacity.
+**List stagger**: mounting a list (table rows, nav items, card grids) staggers children at 40ms increments, capped at 10 children to prevent slow-feel on long lists.
 
-### 8. Breakpoints & Responsive Strategy
+**Route transitions**: `(admin)/layout.tsx` wraps `{children}` in a `fade`-keyed container keyed by pathname. 220ms fade, no translate — keeps the gradient canvas steady between routes.
+
+**Number transitions**: `StatCard.value` uses `countUp` on mount and animates on value change via `requestAnimationFrame`-based interpolation (utility in `src/lib/utils/countUp.ts`).
+
+### 8. Loading Templates (Skeletons)
+
+Every data-bound surface has a matching skeleton. Skeletons use the `shimmer` animation over `glass.subtle` and live under `src/components/loading/`.
+
+**Principles**:
+- Skeleton shape matches real shape — no layout shift on swap.
+- Minimum display time: **120ms** (prevents flash on fast loads; wrapped via a `useMinDuration` hook).
+- After **8s** of continued skeleton display, swap to a secondary hint ("Still loading…").
+- Skeletons accept an `animate` prop; Playwright visual regression disables animation for deterministic screenshots.
+- No global spinners. The only spinner is the 16px inline spinner inside buttons during mutations.
+
+**Catalog** (`src/components/loading/`):
+
+| Component | Shape | Props |
+|---|---|---|
+| `StatCardSkeleton` | card + 3 shimmer bars (label / value / delta) | — |
+| `DataTableSkeleton` | header row + N body rows × 4–6 shimmer cells | `rows` (default 5), `columns` (default 4) |
+| `ChartSkeleton` | card + dimmed gridlines + curved shimmer line | `height` (default 240) |
+| `FormSkeleton` | N rows of (label bar + input bar) | `fields` (default 6) |
+| `TextBlockSkeleton` | 3 bars at 100% / 85% / 60% width | `lines` (default 3) |
+| `PageSkeleton` | AdminShell shell + breadcrumb shimmer + `children` slot | composes other skeletons |
+| `DialogSkeleton` | TextBlockSkeleton + button-row bars | — |
+| `AvatarSkeleton` | 32px circle shimmer | `size` (default 32) |
+| `PillSkeleton` | 20px pill shimmer | `width` (default 64) |
+
+Every list/table query hook (`useKeys`, `useUsers`, etc.) pairs with a skeleton in the corresponding page, chosen by React Query's `status === 'pending'`. Errors render the page's `error.tsx` route boundary, not a skeleton.
+
+### 9. Breakpoints & Responsive Strategy
 
 Chakra defaults: `sm 480 / md 768 / lg 992 / xl 1280 / 2xl 1536`.
 
 Admin is desktop-first. Below `lg`:
-- Sidebar collapses to a drawer (hamburger icon in TopBar)
-- `DataTable` adapts: primary column + key metadata on card rows
-- Multi-column layouts stack
-- Charts reduce detail (hide axes, simplify tooltips)
+- Sidebar collapses to a drawer (hamburger icon in TopBar).
+- `DataTable` adapts: primary column + key metadata on card rows.
+- Multi-column layouts stack.
+- Charts reduce detail (hide axes, simplify tooltips).
+- Glass opacity bumps up by ~4 points on mobile to compensate for smaller viewport blur artifacts.
 
 Target: 1280+ screens. Mobile functional but not polished.
 
-### 9. Component Specs
+### 10. Component Specs
 
-#### 9.1 Button
+#### 10.1 Button
 
 | Variant | Appearance |
 |---|---|
-| `solid` | `bg.accent.solid` fill, `fg.onAccent` text |
-| `subtle` | `bg.subtle` fill, `fg.default` text |
-| `ghost` | transparent, hover → `bg.subtle` |
-| `outline` | 1px `border.default`, hover → `bg.subtle` |
+| `solid` | `accent.solid` gradient fill, `fg.onAccent` text, `e1` shadow |
+| `subtle` | `bg.glass.subtle`, `fg.default` text |
+| `ghost` | transparent; hover → `bg.glass.subtle` |
+| `outline` | 1px `border.glass`, hover → `bg.glass.subtle` |
 
-Tones: `accent` (default), `neutral`, `danger`. `danger` swaps color scale.
+Tones: `accent` (default), `neutral`, `danger`. `danger` swaps to `danger.*` scale.
 Sizes: `xs` (24), `sm` (28), `md` (36), `lg` (44).
-Focus: 2px accent ring, 2px offset.
+States: `press` animation on `:active`; focus shows 2px accent ring + 2px offset.
 
-#### 9.2 Form Fields
+#### 10.2 Form Fields
 
 - `Input`, `Select`, `Textarea` all 36px (md size).
-- Border `border.default`, focus → 2px accent ring + `border.focus`.
+- Background `bg.glass.surface`; border `border.glass`; focus → 2px accent ring + `border.focus`.
 - Error: `border.danger` + message below in `danger.fg`.
 - Disabled: opacity 0.5, `cursor: not-allowed`.
 - Labels: `caption` size, uppercase tracking, above field.
 - Help text: `caption` size, `fg.muted`, below field.
 
-#### 9.3 DataTable
+#### 10.3 DataTable
 
-- Sticky header, `bg.surface` with `border.subtle` bottom border.
+- Card container uses `glass.surface`.
+- Sticky header row uses `glass.elevated` to stand out on scroll.
 - Row height: 40px default, 32px dense, 48px comfortable (user-toggleable, persisted to localStorage).
-- Row hover: `bg.subtle`.
+- Row hover: `glass.subtle`.
 - Row actions: three-dot menu on right, revealed on hover, always visible on touch.
 - Sortable column: subtle chevron, default unsorted.
-- Loading: 5 skeleton rows with shimmer.
+- Loading: swap in `DataTableSkeleton`.
 - Empty: icon + "No [thing] yet" + CTA, rendered inside the table body.
 - Pagination: bottom row — "Showing N–M of T" left, `Prev` / `Next` + page-size select right.
 
-#### 9.4 Cards / Panels
+#### 10.4 Cards / Panels
 
-- Default: `bg.surface`, radius `md`, 1px `border.default`, `e0` shadow.
-- Interactive: cursor + `e1` on hover, `border.focus` on focus.
+- Default: `glass.surface`, radius `lg`, 1px `border.glass`, `e0` shadow.
+- Interactive: cursor + `lift` animation on hover, `border.focus` on focus.
 - Header: `heading.sm` + optional action button row.
 - Footer (optional): `border.subtle` top border, right-aligned buttons.
 
-#### 9.5 AdminShell (App Layout)
+#### 10.5 AdminShell (App Layout)
 
-- **TopBar** (56px): logo (left), breadcrumbs (center, optional), search trigger + health dot + theme toggle + user avatar menu (right).
-- **SideNav** (240px expanded / 64px collapsed): app switcher (future), section groups with caption headers, nav items with icon + label + active indicator (2px accent bar on left + `bg.subtle` fill).
-- **Main**: `bg.canvas`, max-width 1600px, 24px horizontal padding, 32px top padding.
-- **Persistent status strip** (bottom, 32px, `e0`): environment badge, backend version, build info — only in non-prod or when `?debug=1`.
+- **TopBar** (56px, `glass.elevated`): logo (left), breadcrumbs (center, optional), search trigger + health dot + theme toggle + user avatar menu (right). Floats over the gradient.
+- **SideNav** (240px expanded / 64px collapsed, `glass.sidebar`): app switcher (future), section groups with caption headers, nav items with icon + label + active indicator (2px accent bar on left + `accent.muted` fill + `lift` on hover).
+- **Main**: transparent (gradient canvas shows through), max-width 1600px, 24px horizontal padding, 32px top padding.
+- **Persistent status strip** (bottom, 32px, `glass.elevated`): environment badge, backend version, build info — only in non-prod or when `?debug=1`.
 
-#### 9.6 Dialogs
+#### 10.6 Dialogs
 
+- Surface: `glass.elevated`, radius `xl`, `e3` shadow.
 - Max widths: 540 (confirm), 720 (form), 960 (detail).
-- Radius `lg`, `e3` shadow.
-- Backdrop: `slate.950/70` dark, `slate.950/40` light, with `backdrop-filter: blur(4px)`.
+- Backdrop: `rgba(15,23,42,0.55)` dark, `rgba(15,23,42,0.30)` light, with `backdrop-filter: blur(6px)`.
+- Entrance: `slideIn`. Exit: reverse `slideIn` accelerated (180ms, `ease.accelerate`).
 - Primary action right, cancel left, destructive action uses `danger` button.
 - Close on Escape, backdrop click (configurable).
 
-#### 9.7 Toasts
+#### 10.7 Toasts
 
 - Bottom-right stack, max 3 visible.
+- Surface: `glass.elevated`, radius `md`.
+- Entrance: `pop`. Exit: reverse `pop` 140ms.
 - Auto-dismiss: 4s success, 5s info, 6s warn, manual for danger.
 - Shape: icon · title (bold) · description (muted, optional) · action (optional) · close (X).
 - Always include `request_id` as secondary line for server errors.
 
-#### 9.8 OneTimeSecretDialog
+#### 10.8 OneTimeSecretDialog
 
 Purpose-built for admin keys + registration tokens returned once by backend:
 - Large mono display of the secret, full-width, with copy button.
@@ -298,37 +400,39 @@ Purpose-built for admin keys + registration tokens returned once by backend:
 - No backdrop close, no Escape close — only explicit "I've copied this" button dismisses.
 - Copy action disables dismiss button for 500ms to prevent accidental dismissal.
 
-#### 9.9 Charts (recharts)
+#### 10.9 Charts (recharts)
 
 - Grid: `border.subtle` at 1px.
 - Axes: `fg.subtle` labels, `caption` size.
-- Tooltips: `bg.surface`, `e2` shadow, radius `md`, tabular numerals.
+- Tooltips: `glass.elevated`, `e2` shadow, radius `md`, tabular numerals.
 - Data colors from `dataViz.ts` palette, never UI semantic colors.
+- Loading: `ChartSkeleton`.
 - Empty/no-data state: centered icon + "No data in this window."
-- Skeleton: dimmed gridlines with shimmer.
+- Axis line animation on mount: `fade` only (no growing bars — feels toy-ish in an admin tool).
 
-#### 9.10 Badges / Tags / Status Pills
+#### 10.10 Badges / Tags / Status Pills
 
 - 20px height, `caption` size, `radius.sm`.
 - Backgrounds from muted tone scales (`accent.muted`, `success.muted`, etc.).
 - Roles: `status` (active/revoked/pending), `type` (admin/user/service), `tag` (user-defined).
 
-### 10. Accessibility
+### 11. Accessibility
 
-- Contrast: all text ≥ 4.5:1 (WCAG AA). Interactive elements ≥ 3:1.
+- Contrast: all text ≥ 4.5:1 (WCAG AA) verified against both gradient endpoints and mid-point. Interactive elements ≥ 3:1.
+- Glass surfaces tested for contrast at every opacity value defined above. No token ships without passing.
 - Focus: always visible. 2px accent ring, 2px offset. No `outline: none` anywhere.
 - Keyboard: every action reachable. `Esc` closes dialogs, `Tab` cycles, `Enter` submits primary.
 - Screen readers: every icon button has `aria-label`. Form fields always have real `<label>`. Status icons paired with text (never color-only).
-- Motion: `prefers-reduced-motion: reduce` removes transforms, keeps opacity transitions.
+- Motion: `prefers-reduced-motion: reduce` removes transforms and disables `shimmer`/`pulse`; keeps opacity transitions under 200ms.
 - Axe audit in Playwright on every page per PR.
 
-### 11. Iconography
+### 12. Iconography
 
-- Library: `lucide-react` (via `react-icons` or direct). 1.5px stroke, geometric style.
+- Library: `lucide-react`. 1.5px stroke, geometric style.
 - Sizes: 14 (inline with body.sm), 16 (default inline), 20 (standalone), 24 (prominent), 48 (empty states).
 - Color: inherit from parent text by default. Semantic icons (check, alert, x) use role colors.
 
-### 12. Copy / Voice
+### 13. Copy / Voice
 
 - Terse and specific. "No keys yet" not "You have not created any API keys at this time."
 - Destructive confirms state the consequence: "Revoke key 'prod-ci'? This cannot be undone."
@@ -338,42 +442,61 @@ Purpose-built for admin keys + registration tokens returned once by backend:
 - Timestamps: relative in tables ("3m ago"), absolute on hover + in detail views (`2026-04-12 10:24 UTC`).
 - Booleans in tables: `✓` / `—`, never `true` / `false`.
 
-### 13. Implementation Structure
+### 14. Implementation Structure
 
 ```
 src/theme/
 ├── index.ts             # createSystem, exports
-├── tokens.ts            # raw palette, fonts, spacing, radii, shadows, durations
-├── semanticTokens.ts    # semantic mapping (bg.canvas, fg.default, etc.)
+├── tokens.ts            # raw palette, fonts, spacing, radii
+├── semanticTokens.ts    # semantic mapping per mode (glass tiers, fg/bg/border)
+├── gradients.ts         # canvas gradient strings (dark / light)
+├── animations.ts        # keyframes, durations, easings, named presets
 ├── recipes/
 │   ├── button.ts
 │   ├── input.ts
-│   ├── card.ts
+│   ├── card.ts          # glass recipe primary
 │   ├── badge.ts
 │   ├── dialog.ts
 │   └── table.ts
-├── globalCss.ts         # font-feature-settings, reduce-motion, scrollbar
+├── globalCss.ts         # font-feature, reduce-motion, body gradient, scrollbar
 └── dataViz.ts           # chart palette + recharts theme object
+
+src/components/loading/
+├── StatCardSkeleton.tsx
+├── DataTableSkeleton.tsx
+├── ChartSkeleton.tsx
+├── FormSkeleton.tsx
+├── TextBlockSkeleton.tsx
+├── PageSkeleton.tsx
+├── DialogSkeleton.tsx
+├── AvatarSkeleton.tsx
+└── PillSkeleton.tsx
+
+src/lib/utils/
+├── countUp.ts           # RAF-based number interpolation for StatCard
+└── useMinDuration.ts    # hook enforcing skeleton min-display 120ms
 ```
 
-### 14. Living Style Guide
+### 15. Living Style Guide
 
-Route `/styleguide` renders every component in every variant. Purposes:
+Route `/styleguide` renders every component in every variant, in both gradient modes via a theme toggle at the top. Purposes:
 1. **Design review** — pixel-perfect reference for the team
 2. **Regression catch** — Playwright full-page screenshots per theme (dark + light) in CI
 3. **Living documentation** — devs add new components here first
 
 **Gating**:
-- **PR A**: public (auth doesn't exist yet), with `X-Robots-Tag: noindex, nofollow` and `<meta name="robots" content="noindex,nofollow">` to prevent indexing. Accessible to the whole team during scaffolding.
+- **FE PR A3**: public (auth doesn't exist yet), with `X-Robots-Tag: noindex, nofollow` and `<meta name="robots" content="noindex,nofollow">` to prevent indexing.
 - **PR B onward**: auth-gated alongside every other admin route via `middleware.ts`.
 
-Sections: Colors · Typography · Spacing · Buttons · Inputs · Tables · Cards · Dialogs · Toasts · Charts · Empty states · Forms.
+**Sections**: Colors (both modes) · Gradients · Typography · Spacing · Glass tiers · Radii · Motion (each named animation interactive) · Buttons · Inputs · Tables · Cards · Dialogs · Toasts · Charts · Badges · Empty states · Forms · **Skeletons** (every skeleton above, toggle animate on/off).
 
-### 15. Delivery
+### 16. Delivery
 
-Design system ships as part of **Frontend PR A**, plus an explicit subtask for the `/styleguide` route. Full token system, all recipes, and every component has one example variant landed before **PR C** (first feature PR) begins. Feature PRs consume the system — they don't invent new styles.
+Design system ships across **Frontend PR A2 and A3**:
+- **A2**: full `src/theme/*` (tokens, semantic, gradients, animations, recipes) + Chakra provider wiring + next-font Inter/JetBrains Mono + light/dark toggle via `next-themes` + `src/components/loading/*` skeleton catalog.
+- **A3**: `/styleguide` route rendering every variant + Playwright visual regression (dark + light) + noindex.
 
----
+All tokens, recipes, skeletons, and animations land before **PR C** (first feature PR) begins. Feature PRs consume the system — they don't invent new styles.
 
 ## Backend PR Sequence
 
