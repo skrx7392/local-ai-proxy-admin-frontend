@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
-test('home page loads', async ({ page }) => {
+test('root redirects unauthenticated users to the login page', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByText('local-ai admin')).toBeVisible();
-  await expect(page.getByTestId('styleguide-link')).toHaveAttribute('href', '/styleguide');
+  expect(new URL(page.url()).pathname).toBe('/login');
+  await expect(page.getByTestId('login-card')).toBeVisible();
 });

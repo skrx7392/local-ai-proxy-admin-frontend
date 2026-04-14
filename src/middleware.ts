@@ -1,25 +1,38 @@
 import { NextResponse } from 'next/server';
 
-/**
- * Global edge middleware.
- *
- * A3 scope: attach `X-Robots-Tag: noindex, nofollow` to the `/styleguide`
- * response so crawlers that reach the public deployment never index it.
- * The page itself also emits `<meta name="robots" content="noindex,nofollow">`
- * via Next metadata — belt and braces.
- *
- * PR B repurposes this file to run `auth()` on admin routes and redirect
- * unauthenticated users to `/login`. Until then, this middleware is strictly
- * additive (headers only) and never rewrites or redirects.
- */
-export function middleware() {
-  const response = NextResponse.next();
-  response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-  return response;
+import { auth } from '@/lib/auth/options';
+
+const PUBLIC_PATHS = new Set<string>(['/login', '/api/health']);
+
+function isPublicPath(pathname: string): boolean {
+  if (PUBLIC_PATHS.has(pathname)) return true;
+  if (pathname.startsWith('/api/auth/')) return true;
+  return false;
 }
 
+export default auth((req) => {
+  const { pathname, search } = req.nextUrl;
+  const response = NextResponse.next();
+
+  // Preserved from A3: belt-and-braces noindex on /styleguide even now that
+  // the route is auth-gated, so a misconfigured crawler can't index an
+  // error/redirect page.
+  if (pathname.startsWith('/styleguide')) {
+    response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  }
+
+  if (isPublicPath(pathname)) return response;
+
+  if (!req.auth) {
+    const loginUrl = new URL('/login', req.nextUrl);
+    loginUrl.searchParams.set('callbackUrl', pathname + search);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  return response;
+});
+
 export const config = {
-  // Only run on the styleguide subtree for now. Extending this matcher for
-  // auth is PR B's concern.
-  matcher: ['/styleguide/:path*', '/styleguide'],
+  // Match application routes; skip Next internals + static asset paths.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };

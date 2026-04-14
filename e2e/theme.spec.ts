@@ -1,34 +1,19 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Theme wiring sanity. Uses the styleguide mode toggle (added in A3) instead
- * of the A2 ping button on the root page.
+ * Theme wiring now runs against the unauthenticated `/login` page — the only
+ * chrome-free admin surface that doesn't require a session. Full styleguide
+ * theme coverage returns with the post-PR-B auth fixture.
  */
+
 test.describe('theme system', () => {
-  test('body has the dark canvas gradient by default', async ({ page }) => {
-    await page.goto('/');
-    const bg = await page.evaluate(() => {
-      return window.getComputedStyle(document.body).backgroundImage;
-    });
-    // Chrome normalizes the gradient hex values to rgb() tuples.
-    expect(bg).toMatch(/linear-gradient/);
-    expect(bg.toLowerCase()).toContain('rgb(15, 32, 39)'); // #0f2027 → dark gradient anchor
-  });
-
-  test('styleguide theme toggle swaps to the light gradient', async ({ page }) => {
-    await page.goto('/styleguide');
-    await page.getByTestId('theme-toggle').click();
-
-    // next-themes sets class on <html>; verify it became `light`.
-    await expect
-      .poll(async () =>
-        page.evaluate(() => document.documentElement.classList.contains('light')),
-      )
-      .toBe(true);
-
+  test('body has the dark canvas gradient by default on /login', async ({ page }) => {
+    await page.goto('/login');
     const bg = await page.evaluate(
       () => window.getComputedStyle(document.body).backgroundImage,
     );
-    expect(bg.toLowerCase()).toContain('rgb(219, 234, 254)'); // #dbeafe → light gradient anchor
+    expect(bg).toMatch(/linear-gradient/);
+    // #0f2027 → dark gradient anchor, normalized by Chromium to rgb().
+    expect(bg.toLowerCase()).toContain('rgb(15, 32, 39)');
   });
 });

@@ -11,6 +11,11 @@ concurrency:
 
 env:
   NEXT_TELEMETRY_DISABLED: '1'
+  # Build + E2E need these set — options.ts fail-fasts at module load when
+  # AUTH_SECRET is missing or <32 chars. Placeholders only; real values come
+  # from k8s Secret at runtime.
+  AUTH_SECRET: 'ci-placeholder-at-least-32-characters-long-okay'
+  BACKEND_URL: 'http://ci-placeholder:80'
 
 jobs:
   build-and-test:
