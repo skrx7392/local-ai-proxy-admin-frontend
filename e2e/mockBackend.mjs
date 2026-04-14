@@ -36,6 +36,7 @@ const users = [
   {
     id: 1,
     email: 'admin@kinvee.in',
+    name: 'Krishna',
     role: 'admin',
     is_active: true,
     created_at: '2025-10-01T00:00:00Z',
@@ -43,6 +44,7 @@ const users = [
   {
     id: 2,
     email: 'ops@kinvee.in',
+    name: 'Ops Bot',
     role: 'user',
     is_active: true,
     created_at: '2025-12-05T12:00:00Z',
@@ -191,10 +193,20 @@ const server = createServer(async (req, res) => {
     return json(res, 200, envelope(list, url));
   }
   if (/^\/users\/\d+\/activate$/.test(adminPath) && method === 'PUT') {
-    return json(res, 200, { ok: true });
+    return json(res, 200, { status: 'activated' });
   }
   if (/^\/users\/\d+\/deactivate$/.test(adminPath) && method === 'PUT') {
-    return json(res, 200, { ok: true });
+    const match = /^\/users\/(\d+)\/deactivate$/.exec(adminPath);
+    if (match && match[1] === '1') {
+      return json(res, 409, {
+        error: {
+          code: 'last_admin',
+          type: 'invalid_request_error',
+          message: 'Cannot remove the last active admin',
+        },
+      });
+    }
+    return json(res, 200, { status: 'deactivated' });
   }
 
   // Accounts.

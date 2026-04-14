@@ -82,9 +82,11 @@ export const handlers = [
     if (isActive === 'false') list = list.filter((u) => !u.is_active);
     return HttpResponse.json(envelope(list, url));
   }),
-  http.put(base('/users/:id/activate'), () => HttpResponse.json({ ok: true })),
+  http.put(base('/users/:id/activate'), () =>
+    HttpResponse.json({ status: 'activated' }),
+  ),
   http.put(base('/users/:id/deactivate'), () =>
-    HttpResponse.json({ ok: true }),
+    HttpResponse.json({ status: 'deactivated' }),
   ),
 
   // ---- Accounts ----
