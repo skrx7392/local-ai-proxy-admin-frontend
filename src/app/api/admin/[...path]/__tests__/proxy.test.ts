@@ -5,7 +5,7 @@ vi.mock('next-auth/jwt', () => ({
 }));
 
 import { getToken } from 'next-auth/jwt';
-import { GET } from '../route';
+import { GET, POST } from '../route';
 
 type MockRequest = {
   url: string;
@@ -18,12 +18,13 @@ function buildRequest(init: {
   url?: string;
   method?: string;
   headers?: Record<string, string>;
+  body?: ArrayBuffer;
 }): MockRequest {
   return {
     url: init.url ?? 'http://admin.local/api/admin/users?page=1',
     method: init.method ?? 'GET',
     headers: new Headers(init.headers ?? {}),
-    arrayBuffer: async () => new ArrayBuffer(0),
+    arrayBuffer: async () => init.body ?? new ArrayBuffer(0),
   };
 }
 
@@ -66,7 +67,7 @@ describe('BFF proxy at /api/admin/[...path]', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it('injects Bearer from JWT and strips client-provided auth headers', async () => {
+  it('injects Bearer from JWT and drops everything outside the allow-list', async () => {
     vi.mocked(getToken).mockResolvedValueOnce({
       backendToken: 'b'.repeat(64),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -82,9 +83,15 @@ describe('BFF proxy at /api/admin/[...path]', () => {
       url: 'http://admin.local/api/admin/users?page=2',
       headers: {
         'x-requested-with': 'XMLHttpRequest',
+        'content-type': 'application/json',
         authorization: 'Bearer attacker-supplied',
         cookie: 'authjs.session-token=abc',
         'x-admin-key': 'attacker-key',
+        'x-forwarded-for': '1.2.3.4',
+        'x-real-ip': '1.2.3.4',
+        forwarded: 'for=1.2.3.4',
+        'x-user-id': '999',
+        'x-internal-bypass': '1',
       },
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,13 +103,45 @@ describe('BFF proxy at /api/admin/[...path]', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const call = fetchMock.mock.calls[0]!;
     const [upstreamUrl, init] = call;
-    // URL normalizes default :80 away in http:// schemes.
     expect(upstreamUrl.toString()).toBe(
       'http://test-placeholder/api/admin/users?page=2',
     );
     const headers = init.headers as Headers;
     expect(headers.get('authorization')).toBe('Bearer ' + 'b'.repeat(64));
-    expect(headers.get('x-admin-key')).toBeNull();
-    expect(headers.get('cookie')).toBeNull();
+    expect(headers.get('content-type')).toBe('application/json');
+    // Every client-injected identity / trust header must be dropped.
+    for (const name of [
+      'cookie',
+      'x-admin-key',
+      'x-forwarded-for',
+      'x-real-ip',
+      'forwarded',
+      'x-user-id',
+      'x-internal-bypass',
+    ]) {
+      expect(headers.get(name)).toBeNull();
+    }
+  });
+
+  it('rejects request bodies larger than the 1 MiB cap with 413', async () => {
+    vi.mocked(getToken).mockResolvedValueOnce({
+      backendToken: 'b'.repeat(64),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
+    const req = buildRequest({
+      method: 'POST',
+      headers: {
+        'x-requested-with': 'XMLHttpRequest',
+        'content-type': 'application/json',
+        'content-length': String(2 * 1024 * 1024),
+      },
+    });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const response = await POST(req as any, {
+      params: Promise.resolve({ path: ['users'] }),
+    });
+
+    expect(response.status).toBe(413);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

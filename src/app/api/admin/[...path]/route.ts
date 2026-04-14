@@ -4,10 +4,23 @@ import { getToken } from 'next-auth/jwt';
 const BACKEND_URL = process.env.BACKEND_URL;
 const AUTH_SECRET = process.env.AUTH_SECRET;
 
-// Forwarded hop-by-hop headers must be stripped per RFC 7230 §6.1.
-// `host` and `content-length` are recomputed by the runtime; forwarding
-// them from the incoming request corrupts the upstream call.
-const HOP_BY_HOP = new Set([
+// Strict allow-list for headers forwarded to the backend. Anything not on
+// this list is dropped — this closes the door on client-injected identity
+// / trust headers (x-forwarded-*, x-real-ip, forwarded, x-user-*,
+// x-admin-*, x-internal-*) that the backend might otherwise honor.
+// Authorization is re-set from the server-side JWT below.
+const FORWARD_ALLOWLIST = new Set([
+  'accept',
+  'accept-encoding',
+  'accept-language',
+  'content-type',
+  'user-agent',
+  'x-request-id',
+  'x-requested-with',
+]);
+
+// Hop-by-hop headers stripped on the response path (RFC 7230 §6.1).
+const HOP_BY_HOP_RESPONSE = new Set([
   'connection',
   'keep-alive',
   'proxy-authenticate',
@@ -16,9 +29,11 @@ const HOP_BY_HOP = new Set([
   'trailers',
   'transfer-encoding',
   'upgrade',
-  'host',
-  'content-length',
 ]);
+
+// Cap on request body bytes proxied upstream. Admin payloads are tiny
+// (JSON configs, pool updates); anything larger is either abuse or a bug.
+const MAX_BODY_BYTES = 1 * 1024 * 1024;
 
 async function proxy(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
   if (!BACKEND_URL || !AUTH_SECRET) {
@@ -50,27 +65,33 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
 
   const headers = new Headers();
   req.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) headers.set(key, value);
+    if (FORWARD_ALLOWLIST.has(key.toLowerCase())) headers.set(key, value);
   });
-  // Belt-and-braces: strip anything auth-adjacent a client could have set.
-  headers.delete('authorization');
-  headers.delete('cookie');
-  headers.delete('x-admin-key');
   headers.set('Authorization', `Bearer ${token.backendToken}`);
 
   const method = req.method.toUpperCase();
-  const init: RequestInit = { method, headers, redirect: 'manual' };
+  const init: RequestInit = { method, headers, redirect: 'error' };
   if (method !== 'GET' && method !== 'HEAD') {
-    init.body = await req.arrayBuffer();
+    const declared = Number(req.headers.get('content-length') ?? '');
+    if (Number.isFinite(declared) && declared > MAX_BODY_BYTES) {
+      return NextResponse.json({ code: 'payload_too_large' }, { status: 413 });
+    }
+    const body = await req.arrayBuffer();
+    if (body.byteLength > MAX_BODY_BYTES) {
+      return NextResponse.json({ code: 'payload_too_large' }, { status: 413 });
+    }
+    init.body = body;
   }
 
   const upstreamResponse = await fetch(upstreamUrl, init);
 
   const responseHeaders = new Headers();
   upstreamResponse.headers.forEach((value, key) => {
-    if (!HOP_BY_HOP.has(key.toLowerCase())) responseHeaders.set(key, value);
+    if (!HOP_BY_HOP_RESPONSE.has(key.toLowerCase())) responseHeaders.set(key, value);
   });
   responseHeaders.delete('set-cookie');
+  responseHeaders.delete('www-authenticate');
+  responseHeaders.delete('server');
 
   return new NextResponse(upstreamResponse.body, {
     status: upstreamResponse.status,

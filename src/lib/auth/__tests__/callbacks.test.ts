@@ -26,17 +26,30 @@ describe('jwt callback', () => {
     });
   });
 
-  it('passes through unchanged on subsequent requests (no user)', async () => {
+  it('passes through unchanged on subsequent requests while the backend token is still valid', async () => {
     const existing = {
       userId: '1',
       email: 'a@b.c',
       role: 'admin',
       backendToken: 't'.repeat(64),
-      backendExpiresAt: 1,
+      backendExpiresAt: Math.floor(Date.now() / 1000) + 3600,
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await jwtCallback({ token: existing as any });
     expect(result).toBe(existing);
+  });
+
+  it('returns null once the backend token has expired so the session is invalidated', async () => {
+    const existing = {
+      userId: '1',
+      email: 'a@b.c',
+      role: 'admin',
+      backendToken: 't'.repeat(64),
+      backendExpiresAt: Math.floor(Date.now() / 1000) - 1,
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await jwtCallback({ token: existing as any });
+    expect(result).toBeNull();
   });
 });
 
