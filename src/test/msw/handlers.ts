@@ -1,0 +1,152 @@
+import { HttpResponse, http } from 'msw';
+
+import {
+  accounts,
+  keys,
+  pricing,
+  registrationTokens,
+  users,
+} from './fixtures';
+
+// Intercepts the BFF-relative URL that `apiFetch` builds
+// (`/api/admin/...`). The jsdom `fetch` resolves this against the
+// window.location.origin that Vitest sets, so MSW sees a fully
+// qualified URL. The wildcard origin below handles that.
+
+const ORIGIN = '*';
+const base = (path: string) => `${ORIGIN}/api/admin${path}`;
+
+function envelope<T>(
+  items: readonly T[],
+  url: URL,
+): { data: T[]; pagination?: { limit: number; offset: number; total: number } } {
+  const limit = Number(url.searchParams.get('limit') ?? '10');
+  const offset = Number(url.searchParams.get('offset') ?? '0');
+  const slice = items.slice(offset, offset + limit);
+  if (url.searchParams.get('envelope') !== '1') {
+    // Legacy bare-array shape — still supported by the helper while BE
+    // PR 7 is in flight.
+    return { data: [...slice] };
+  }
+  return {
+    data: [...slice],
+    pagination: { limit, offset, total: items.length },
+  };
+}
+
+/**
+ * Default handlers — representative coverage for each resource so hook
+ * tests can run without having to stub per test. Individual tests can
+ * override any handler via `server.use(...)` in a `beforeEach`.
+ */
+export const handlers = [
+  // ---- Keys ----
+  http.get(base('/keys'), ({ request }) => {
+    const url = new URL(request.url);
+    let list = [...keys];
+    const isActive = url.searchParams.get('is_active');
+    if (isActive === 'true') list = list.filter((k) => k.is_active);
+    if (isActive === 'false') list = list.filter((k) => !k.is_active);
+    return HttpResponse.json(envelope(list, url));
+  }),
+  http.post(base('/keys'), async ({ request }) => {
+    const body = (await request.json()) as { name?: string };
+    return HttpResponse.json(
+      {
+        id: 999,
+        name: body?.name ?? 'new-key',
+        key_prefix: 'sk_live_new',
+        plaintext_key: 'sk_live_new_SECRET_ONLY_SHOWN_ONCE',
+        is_active: true,
+        rate_limit: 60,
+        created_at: new Date().toISOString(),
+        last_used_at: null,
+        user_id: 1,
+        account_id: null,
+      },
+      { status: 201 },
+    );
+  }),
+  http.delete(base('/keys/:id'), () => HttpResponse.json({ ok: true })),
+
+  // ---- Users ----
+  http.get(base('/users'), ({ request }) => {
+    const url = new URL(request.url);
+    let list = [...users];
+    const role = url.searchParams.get('role');
+    if (role) list = list.filter((u) => u.role === role);
+    const isActive = url.searchParams.get('is_active');
+    if (isActive === 'true') list = list.filter((u) => u.is_active);
+    if (isActive === 'false') list = list.filter((u) => !u.is_active);
+    return HttpResponse.json(envelope(list, url));
+  }),
+  http.put(base('/users/:id/activate'), () => HttpResponse.json({ ok: true })),
+  http.put(base('/users/:id/deactivate'), () =>
+    HttpResponse.json({ ok: true }),
+  ),
+
+  // ---- Accounts ----
+  http.get(base('/accounts'), ({ request }) => {
+    const url = new URL(request.url);
+    let list = [...accounts];
+    const type = url.searchParams.get('type');
+    if (type) list = list.filter((a) => a.type === type);
+    const isActive = url.searchParams.get('is_active');
+    if (isActive === 'true') list = list.filter((a) => a.is_active);
+    if (isActive === 'false') list = list.filter((a) => !a.is_active);
+    return HttpResponse.json(envelope(list, url));
+  }),
+  http.post(base('/accounts/:id/credits'), async ({ request }) => {
+    const body = (await request.json()) as { amount_cents?: number };
+    return HttpResponse.json({
+      ok: true,
+      amount_cents: body?.amount_cents ?? 0,
+    });
+  }),
+  http.post(base('/accounts/:id/keys'), () =>
+    HttpResponse.json(
+      {
+        id: 998,
+        name: 'account-scoped-key',
+        plaintext_key: 'sk_live_acct_SECRET_ONLY_SHOWN_ONCE',
+        is_active: true,
+      },
+      { status: 201 },
+    ),
+  ),
+
+  // ---- Pricing ----
+  http.get(base('/pricing'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(envelope(pricing, url));
+  }),
+  http.post(base('/pricing'), async ({ request }) => {
+    const body = (await request.json()) as Record<string, unknown>;
+    return HttpResponse.json({ id: 299, ...body }, { status: 201 });
+  }),
+  http.delete(base('/pricing/:id'), () => HttpResponse.json({ ok: true })),
+
+  // ---- Registration tokens ----
+  http.get(base('/registration-tokens'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(envelope(registrationTokens, url));
+  }),
+  http.post(base('/registration-tokens'), () =>
+    HttpResponse.json(
+      {
+        id: 399,
+        label: 'new-token',
+        token_prefix: 'rt_new',
+        plaintext_token: 'rt_new_SECRET_ONLY_SHOWN_ONCE',
+        is_active: true,
+        credits_grant: 10000,
+        created_at: new Date().toISOString(),
+        expires_at: null,
+      },
+      { status: 201 },
+    ),
+  ),
+  http.delete(base('/registration-tokens/:id'), () =>
+    HttpResponse.json({ ok: true }),
+  ),
+];
