@@ -1,29 +1,40 @@
-'use client';
-
-import { Box, Button, Card, Stack, Text } from '@chakra-ui/react';
-import { useTheme } from 'next-themes';
+import NextLink from 'next/link';
+import { Box, Card, Link, Stack, Text } from '@chakra-ui/react';
 
 /**
- * Smoke surface for A2. Proves Chakra v3 + theme + providers + next-themes
- * wire up end-to-end. A3 replaces this with the full `/styleguide` route.
+ * Root landing. A3 keeps this deliberately tiny: a single centered card
+ * that links off to `/styleguide`. The theme toggle and all the demos live
+ * on the styleguide page itself. PR B replaces this with the authenticated
+ * admin shell (or redirects to `/login`).
  */
 export default function Page() {
-  const { resolvedTheme, setTheme } = useTheme();
-  const nextTheme = resolvedTheme === 'light' ? 'dark' : 'light';
-
   return (
-    <Box as="main" minH="100vh" padding="8" display="flex" justifyContent="center">
-      <Card.Root maxW="420px" width="100%">
+    <Box
+      as="main"
+      minH="100vh"
+      padding="8"
+      display="flex"
+      alignItems="center"
+      justifyContent="center"
+    >
+      <Card.Root maxW="420px" width="100%" data-testid="root-card">
         <Card.Body>
-          <Stack gap="4">
+          <Stack gap="3">
             <Text textStyle="heading.sm">local-ai admin</Text>
-            <Text textStyle="body.md">A2 theme live</Text>
-            <Button
-              data-testid="ping-button"
-              onClick={() => setTheme(nextTheme)}
-            >
-              Ping
-            </Button>
+            <Text textStyle="body.md" color="fg.muted">
+              Scaffolding in progress. See{' '}
+              <Link
+                asChild
+                color="accent.fg"
+                textDecoration="underline"
+                textUnderlineOffset="2px"
+              >
+                <NextLink href="/styleguide" data-testid="styleguide-link">
+                  /styleguide
+                </NextLink>
+              </Link>{' '}
+              for the design system.
+            </Text>
           </Stack>
         </Card.Body>
       </Card.Root>
