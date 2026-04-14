@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, HStack, Stack, Text } from '@chakra-ui/react';
+import { Box, HStack, Stack, Text, chakra } from '@chakra-ui/react';
 import { Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
@@ -27,17 +27,14 @@ const BLUR_PRESETS = [
  */
 export function ThemeControls() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [motionOff, setMotionOff] = useState(false);
+  // Lazy initializer reads `?motion=off` on first render so the value is
+  // correct before any effect runs. SSR → `window` is undefined → default
+  // false, then hydration corrects it on the client without an extra render.
+  const [motionOff, setMotionOff] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('motion') === 'off';
+  });
   const [blur, setBlur] = useState<string>('18px');
-
-  // Initialize from URL `?motion=off` on mount so Playwright can opt in.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('motion') === 'off') {
-      setMotionOff(true);
-    }
-  }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -77,8 +74,7 @@ export function ThemeControls() {
           <Text textStyle="caption" color="fg.muted">
             Mode
           </Text>
-          <Box
-            as="button"
+          <chakra.button
             type="button"
             data-testid="theme-toggle"
             data-mode={resolvedTheme ?? 'dark'}
@@ -105,15 +101,14 @@ export function ThemeControls() {
               <Moon size={14} aria-hidden="true" />
             )}
             <span>{resolvedTheme === 'light' ? 'Light' : 'Dark'}</span>
-          </Box>
+          </chakra.button>
         </HStack>
 
         <HStack justifyContent="space-between">
           <Text textStyle="caption" color="fg.muted">
             Reduce motion
           </Text>
-          <Box
-            as="button"
+          <chakra.button
             type="button"
             data-testid="motion-toggle"
             data-motion-off={motionOff ? 'true' : 'false'}
@@ -132,20 +127,17 @@ export function ThemeControls() {
             cursor="pointer"
           >
             {motionOff ? 'On' : 'Off'}
-          </Box>
+          </chakra.button>
         </HStack>
 
         <HStack justifyContent="space-between" alignItems="center">
           <Text textStyle="caption" color="fg.muted">
             Glass blur
           </Text>
-          <Box
-            as="select"
+          <chakra.select
             data-testid="blur-select"
             value={blur}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setBlur(e.target.value)
-            }
+            onChange={(e) => setBlur(e.target.value)}
             paddingInline="2"
             height="28px"
             borderRadius="md"
@@ -161,7 +153,7 @@ export function ThemeControls() {
                 {p.label}
               </option>
             ))}
-          </Box>
+          </chakra.select>
         </HStack>
       </Stack>
     </Box>

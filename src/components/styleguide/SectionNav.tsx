@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Stack, Text } from '@chakra-ui/react';
+import { Box, Stack, Text, chakra } from '@chakra-ui/react';
 import { useEffect, useState } from 'react';
 
 export interface SectionNavItem {
@@ -95,8 +95,7 @@ export function SectionNav({ items }: SectionNavProps) {
           const isActive = item.id === active;
           return (
             <Box as="li" key={item.id}>
-              <Box
-                as="a"
+              <chakra.a
                 href={`#${item.id}`}
                 data-nav-item={item.id}
                 data-active={isActive ? 'true' : 'false'}
@@ -112,7 +111,7 @@ export function SectionNav({ items }: SectionNavProps) {
                 transition="background-color 140ms, color 140ms"
               >
                 {item.label}
-              </Box>
+              </chakra.a>
             </Box>
           );
         })}

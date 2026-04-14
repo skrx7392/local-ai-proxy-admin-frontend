@@ -1,7 +1,7 @@
 'use client';
 
-import { Box, HStack, Stack, Text } from '@chakra-ui/react';
-import { useMemo, useState } from 'react';
+import { Box, HStack, Stack, Text, chakra } from '@chakra-ui/react';
+import { useId, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -47,13 +47,15 @@ export function ChartDemo() {
   const accent = qualitativePalette[0] ?? '#60a5fa';
   const accent2 = qualitativePalette[1] ?? '#a78bfa';
 
-  const areaGradientId = useMemo(() => `sg-area-${Math.random().toString(36).slice(2, 8)}`, []);
+  // `useId` is stable across renders AND SSR/CSR handoff; React guarantees
+  // uniqueness without the purity-warning baggage of Math.random.
+  const reactId = useId();
+  const areaGradientId = `sg-area-${reactId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   return (
     <Stack gap="4">
       <HStack gap="3">
-        <Box
-          as="button"
+        <chakra.button
           type="button"
           data-testid="chart-loading-toggle"
           onClick={() => setLoading((v) => !v)}
@@ -70,7 +72,7 @@ export function ChartDemo() {
           cursor="pointer"
         >
           {loading ? 'Show data' : 'Show loading'}
-        </Box>
+        </chakra.button>
         <Text textStyle="caption" color="fg.subtle">
           Toggles `ChartSkeleton` swap — layout should not shift.
         </Text>

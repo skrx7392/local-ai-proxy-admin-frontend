@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 /**
  * Global edge middleware.
@@ -13,7 +12,7 @@ import type { NextRequest } from 'next/server';
  * unauthenticated users to `/login`. Until then, this middleware is strictly
  * additive (headers only) and never rewrites or redirects.
  */
-export function middleware(_request: NextRequest) {
+export function middleware() {
   const response = NextResponse.next();
   response.headers.set('X-Robots-Tag', 'noindex, nofollow');
   return response;

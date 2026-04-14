@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, HStack, Stack, Text } from '@chakra-ui/react';
+import { Box, HStack, Stack, Text, chakra } from '@chakra-ui/react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 
@@ -37,8 +37,7 @@ export function MotionTile({ name, spec, children }: MotionTileProps) {
     >
       <HStack justifyContent="space-between" align="baseline">
         <Text textStyle="heading.sm">{name}</Text>
-        <Box
-          as="button"
+        <chakra.button
           type="button"
           data-testid={`replay-${name}`}
           onClick={() => setReplayKey((k) => k + 1)}
@@ -56,7 +55,7 @@ export function MotionTile({ name, spec, children }: MotionTileProps) {
           _hover={{ background: 'bg.glass.elevated' }}
         >
           Replay
-        </Box>
+        </chakra.button>
       </HStack>
       <Text textStyle="code.sm" color="fg.subtle">
         {spec}
