@@ -83,4 +83,17 @@ export const globalCss = defineGlobalStyles({
       scrollBehavior: 'auto !important',
     },
   },
+  // Runtime force-disable: `data-motion="off"` on <html> halts every animation
+  // and transition. Used by the styleguide's ThemeControls and the
+  // `?motion=off` query parameter so Playwright can capture deterministic
+  // screenshots without relying on browser emulation flags.
+  'html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="off"] *::after':
+    {
+      animationName: 'none !important',
+      animationDuration: '0ms !important',
+      animationIterationCount: '1 !important',
+      transitionDuration: '0ms !important',
+      transitionProperty: 'none !important',
+      scrollBehavior: 'auto !important',
+    },
 });
