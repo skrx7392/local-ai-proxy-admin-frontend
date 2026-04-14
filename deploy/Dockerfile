@@ -1,11 +1,11 @@
 # 1. Dependencies
-FROM node:22-alpine AS deps
+FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 # 2. Build
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 ARG GIT_SHA=unknown
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
@@ -22,7 +22,7 @@ ENV BACKEND_URL="http://build-time-placeholder:80"
 RUN npm run build
 
 # 3. Runtime
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
