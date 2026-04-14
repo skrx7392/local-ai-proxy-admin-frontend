@@ -14,6 +14,7 @@ import { accentSolid } from '../gradients';
 export const buttonRecipe = defineRecipe({
   className: 'chakra-button',
   base: {
+    colorPalette: 'accent',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -60,25 +61,28 @@ export const buttonRecipe = defineRecipe({
         _hover: { filter: 'brightness(1.08)' },
       },
       subtle: {
-        background: 'bg.glass.subtle',
+        bg: 'bg.glass.subtle',
         color: 'fg.default',
         borderWidth: '1px',
         borderStyle: 'solid',
         borderColor: 'border.glass',
-        _hover: { background: 'bg.glass.surface' },
+        _hover: { bg: 'bg.glass.surface', color: 'fg.default' },
+        _active: { bg: 'bg.glass.elevated', color: 'fg.default' },
       },
       ghost: {
-        background: 'transparent',
+        bg: 'transparent',
         color: 'fg.default',
-        _hover: { background: 'bg.glass.subtle' },
+        _hover: { bg: 'bg.glass.subtle', color: 'fg.default' },
+        _active: { bg: 'bg.glass.surface', color: 'fg.default' },
       },
       outline: {
-        background: 'transparent',
+        bg: 'transparent',
         color: 'fg.default',
         borderWidth: '1px',
         borderStyle: 'solid',
         borderColor: 'border.glass',
-        _hover: { background: 'bg.glass.subtle' },
+        _hover: { bg: 'bg.glass.subtle', color: 'fg.default' },
+        _active: { bg: 'bg.glass.surface', color: 'fg.default' },
       },
     },
     tone: {
