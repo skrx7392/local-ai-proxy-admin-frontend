@@ -22,7 +22,7 @@ jobs:
       # Pin checkout to the SHA whose CI passed. Without `ref`, workflow_run
       # resolves to main's current HEAD — a fast follow-up push would deploy
       # untested code under the previous SHA's label.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
