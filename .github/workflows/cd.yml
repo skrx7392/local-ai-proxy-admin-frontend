@@ -1,0 +1,82 @@
+name: Deploy admin-frontend
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: cd-admin-frontend
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+
+    steps:
+      # Pin checkout to the SHA whose CI passed. Without `ref`, workflow_run
+      # resolves to main's current HEAD — a fast follow-up push would deploy
+      # untested code under the previous SHA's label.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Deploy to k3s
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEV_SERVER_SSH_KEY }}
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          SHORT_SHA="${IMAGE_TAG:0:12}"
+          BUILD_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          # Copy source to server and build the Docker image there
+          scp -o StrictHostKeyChecking=no -r \
+            package.json package-lock.json next.config.ts tsconfig.json \
+            public/ src/ deploy/ \
+            sk@100.108.60.90:~/local-ai-proxy-admin-frontend/
+
+          # Ensure namespace exists before creating the secret.
+          ssh -o StrictHostKeyChecking=no sk@100.108.60.90 "export KUBECONFIG=/home/sk/.kube/config && \
+            sudo kubectl create namespace local-ai-admin --dry-run=client -o yaml | sudo kubectl apply -f -"
+
+          # Create/update k8s secret from repo secrets
+          ssh -o StrictHostKeyChecking=no sk@100.108.60.90 "export KUBECONFIG=/home/sk/.kube/config && \
+            sudo kubectl -n local-ai-admin create secret generic admin-frontend-secret \
+              --from-literal=AUTH_SECRET='${AUTH_SECRET}' \
+              --dry-run=client -o yaml | sudo kubectl apply -f -"
+
+          # Build image on the dev server, import into k3s, apply manifests, roll out.
+          ssh -o StrictHostKeyChecking=no sk@100.108.60.90 \
+            "export KUBECONFIG=/home/sk/.kube/config && \
+             cd ~/local-ai-proxy-admin-frontend && \
+             sudo docker build \
+               --build-arg GIT_SHA='${SHORT_SHA}' \
+               --build-arg BUILD_TIME='${BUILD_TIME}' \
+               -f deploy/Dockerfile \
+               -t local-ai-proxy-admin-frontend:${SHORT_SHA} \
+               -t local-ai-proxy-admin-frontend:latest \
+               . && \
+             sudo docker save local-ai-proxy-admin-frontend:${SHORT_SHA} local-ai-proxy-admin-frontend:latest | sudo k3s ctr images import - && \
+             sudo kubectl apply -f deploy/k8s/namespace.yaml && \
+             sudo kubectl apply -f deploy/k8s/service.yaml && \
+             sudo kubectl apply -f deploy/k8s/ingress.yaml && \
+             sudo kubectl apply -f deploy/k8s/deployment.yaml && \
+             sudo kubectl -n local-ai-admin set image deployment/admin-frontend admin-frontend=local-ai-proxy-admin-frontend:${SHORT_SHA} && \
+             sudo kubectl -n local-ai-admin rollout status deployment/admin-frontend --timeout=180s"
