@@ -10,6 +10,12 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    # @types/node must track the runtime. The runtime is Node 22 LTS.
+    # When the runtime moves (see the Dockerfile ignore below), widen
+    # this range in the same PR.
+    ignore:
+      - dependency-name: "@types/node"
+        versions: [">=25"]
     groups:
       next:
         patterns:
@@ -59,3 +65,9 @@ updates:
     labels:
       - dependencies
       - docker
+    # Pin the node base image to an LTS line. 22 is current LTS; 24 is
+    # also LTS but we haven't validated it yet. Odd-numbered releases
+    # (25, 27, ...) are non-LTS — reject them outright.
+    ignore:
+      - dependency-name: "node"
+        versions: [">=25"]
