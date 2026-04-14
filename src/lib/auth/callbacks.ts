@@ -11,7 +11,7 @@ export async function jwtCallback({
 }: {
   token: JWT;
   user?: User;
-}): Promise<JWT> {
+}): Promise<JWT | null> {
   if (user) {
     if (user.id !== undefined) token.userId = user.id;
     if (user.email) token.email = user.email;
@@ -19,7 +19,21 @@ export async function jwtCallback({
     if (user.backendToken !== undefined) token.backendToken = user.backendToken;
     if (user.backendExpiresAt !== undefined)
       token.backendExpiresAt = user.backendExpiresAt;
+    return token;
   }
+
+  // Refuse to extend a session past the backend token's own lifetime.
+  // Without this, the encrypted JWT cookie can outlive the backend token
+  // for up to session.maxAge, letting a revoked/demoted account keep an
+  // authenticated UI until the next 401 round-trip. Returning null
+  // invalidates the session so middleware redirects immediately.
+  if (
+    typeof token.backendExpiresAt === 'number' &&
+    Math.floor(Date.now() / 1000) >= token.backendExpiresAt
+  ) {
+    return null;
+  }
+
   return token;
 }
 
