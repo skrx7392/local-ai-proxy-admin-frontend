@@ -54,11 +54,25 @@ export const buttonRecipe = defineRecipe({
       solid: {
         color: 'fg.onAccent',
         backgroundImage: accentSolid,
+        backgroundColor: 'transparent',
         boxShadow: 'e1',
         borderWidth: '1px',
         borderStyle: 'solid',
         borderColor: 'transparent',
-        _hover: { filter: 'brightness(1.08)' },
+        _hover: {
+          backgroundImage: 'none',
+          backgroundColor: 'bg.glass.surface',
+          color: 'fg.default',
+          borderColor: 'border.glass',
+          boxShadow: 'e0',
+        },
+        _active: {
+          backgroundImage: 'none',
+          backgroundColor: 'bg.glass.elevated',
+          color: 'fg.default',
+          borderColor: 'border.glass',
+          boxShadow: 'e0',
+        },
       },
       subtle: {
         bg: 'bg.glass.subtle',
