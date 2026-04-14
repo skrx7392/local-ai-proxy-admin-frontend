@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: admin-frontend
-  namespace: local-ai
+  namespace: local-ai-admin
 spec:
   replicas: 1
   strategy:

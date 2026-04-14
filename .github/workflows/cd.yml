@@ -52,9 +52,13 @@ jobs:
             public/ src/ deploy/ \
             sk@100.108.60.90:~/local-ai-proxy-admin-frontend/
 
+          # Ensure namespace exists before creating the secret.
+          ssh -o StrictHostKeyChecking=no sk@100.108.60.90 "export KUBECONFIG=/home/sk/.kube/config && \
+            sudo kubectl create namespace local-ai-admin --dry-run=client -o yaml | sudo kubectl apply -f -"
+
           # Create/update k8s secret from repo secrets
           ssh -o StrictHostKeyChecking=no sk@100.108.60.90 "export KUBECONFIG=/home/sk/.kube/config && \
-            sudo kubectl -n local-ai create secret generic admin-frontend-secret \
+            sudo kubectl -n local-ai-admin create secret generic admin-frontend-secret \
               --from-literal=AUTH_SECRET='${AUTH_SECRET}' \
               --dry-run=client -o yaml | sudo kubectl apply -f -"
 
@@ -70,8 +74,9 @@ jobs:
                -t local-ai-proxy-admin-frontend:latest \
                . && \
              sudo docker save local-ai-proxy-admin-frontend:${SHORT_SHA} local-ai-proxy-admin-frontend:latest | sudo k3s ctr images import - && \
+             sudo kubectl apply -f deploy/k8s/namespace.yaml && \
              sudo kubectl apply -f deploy/k8s/service.yaml && \
              sudo kubectl apply -f deploy/k8s/ingress.yaml && \
              sudo kubectl apply -f deploy/k8s/deployment.yaml && \
-             sudo kubectl -n local-ai set image deployment/admin-frontend admin-frontend=local-ai-proxy-admin-frontend:${SHORT_SHA} && \
-             sudo kubectl -n local-ai rollout status deployment/admin-frontend --timeout=180s"
+             sudo kubectl -n local-ai-admin set image deployment/admin-frontend admin-frontend=local-ai-proxy-admin-frontend:${SHORT_SHA} && \
+             sudo kubectl -n local-ai-admin rollout status deployment/admin-frontend --timeout=180s"

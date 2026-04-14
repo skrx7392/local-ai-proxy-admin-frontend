@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: admin-frontend
-  namespace: local-ai
+  namespace: local-ai-admin
 spec:
   selector:
     app: admin-frontend
