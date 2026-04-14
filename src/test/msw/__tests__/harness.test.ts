@@ -20,6 +20,8 @@ describe('MSW harness — admin handlers', () => {
   });
 
   it('applies the is_active filter on the list endpoint', async () => {
+    // Backend exposes `revoked` on the response but accepts
+    // ?is_active=true|false as the filter param — assert on `revoked`.
     const activeOnly = await fetch(
       'http://admin.local/api/admin/keys?envelope=1&is_active=true',
     );
@@ -27,16 +29,16 @@ describe('MSW harness — admin handlers', () => {
       'http://admin.local/api/admin/keys?envelope=1&is_active=false',
     );
     const active = (await activeOnly.json()) as {
-      data: Array<{ is_active: boolean }>;
+      data: Array<{ revoked: boolean }>;
     };
     const inactive = (await inactiveOnly.json()) as {
-      data: Array<{ is_active: boolean }>;
+      data: Array<{ revoked: boolean }>;
     };
-    expect(active.data.every((k) => k.is_active)).toBe(true);
-    expect(inactive.data.every((k) => !k.is_active)).toBe(true);
+    expect(active.data.every((k) => !k.revoked)).toBe(true);
+    expect(inactive.data.every((k) => k.revoked)).toBe(true);
   });
 
-  it('returns a 201 + plaintext secret on key creation', async () => {
+  it('returns the real create-key shape (id, name, key, key_prefix, rate_limit)', async () => {
     const response = await fetch('http://admin.local/api/admin/keys', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -44,11 +46,16 @@ describe('MSW harness — admin handlers', () => {
     });
     expect(response.status).toBe(201);
     const body = (await response.json()) as {
-      plaintext_key: string;
+      id: number;
       name: string;
+      key: string;
+      key_prefix: string;
+      rate_limit: number;
     };
     expect(body.name).toBe('spec-key');
-    expect(body.plaintext_key).toMatch(/SECRET_ONLY_SHOWN_ONCE/);
+    expect(body.key).toMatch(/^sk-/);
+    expect(body.key_prefix).toMatch(/^sk-/);
+    expect(body.rate_limit).toBeGreaterThan(0);
   });
 
   it('falls back to bare-array shape when envelope=1 is not set', async () => {

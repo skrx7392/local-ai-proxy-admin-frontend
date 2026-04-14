@@ -41,33 +41,35 @@ function envelope<T>(
  */
 export const handlers = [
   // ---- Keys ----
+  // Backend uses `revoked: boolean` on responses but still accepts
+  // ?is_active=true|false as a filter param (mapped to !revoked server-side).
   http.get(base('/keys'), ({ request }) => {
     const url = new URL(request.url);
     let list = [...keys];
     const isActive = url.searchParams.get('is_active');
-    if (isActive === 'true') list = list.filter((k) => k.is_active);
-    if (isActive === 'false') list = list.filter((k) => !k.is_active);
+    if (isActive === 'true') list = list.filter((k) => !k.revoked);
+    if (isActive === 'false') list = list.filter((k) => k.revoked);
     return HttpResponse.json(envelope(list, url));
   }),
   http.post(base('/keys'), async ({ request }) => {
-    const body = (await request.json()) as { name?: string };
+    const body = (await request.json()) as { name?: string; rate_limit?: number };
+    // Shape matches internal/admin/admin.go::createKeyResponse — the
+    // plaintext lives in `key`, and the response is intentionally slim
+    // (no created_at, no revoked flag).
     return HttpResponse.json(
       {
         id: 999,
         name: body?.name ?? 'new-key',
-        key_prefix: 'sk_live_new',
-        plaintext_key: 'sk_live_new_SECRET_ONLY_SHOWN_ONCE',
-        is_active: true,
-        rate_limit: 60,
-        created_at: new Date().toISOString(),
-        last_used_at: null,
-        user_id: 1,
-        account_id: null,
+        key: 'sk-' + 'a'.repeat(64),
+        key_prefix: 'sk-newabcdef',
+        rate_limit: body?.rate_limit ?? 60,
       },
       { status: 201 },
     );
   }),
-  http.delete(base('/keys/:id'), () => HttpResponse.json({ ok: true })),
+  http.delete(base('/keys/:id'), () =>
+    HttpResponse.json({ status: 'revoked' }),
+  ),
 
   // ---- Users ----
   http.get(base('/users'), ({ request }) => {

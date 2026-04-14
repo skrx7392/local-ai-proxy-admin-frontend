@@ -3,39 +3,34 @@
 // runtimes never diverge, and updating a shape in one place takes
 // care of all tests at once.
 
+// Shape matches internal/admin/admin.go::keyResponse — the list endpoint
+// does NOT return last_used_at / user_id / account_id, and the active
+// flag is inverted into `revoked`. A server-side filter of
+// ?is_active=true|false is still valid (backend maps to !revoked).
 export const keys = [
   {
     id: 101,
     name: 'frontend-dev',
-    key_prefix: 'sk_live_abc',
-    is_active: true,
+    key_prefix: 'sk-abc12345',
     rate_limit: 60,
     created_at: '2026-01-12T10:00:00Z',
-    last_used_at: '2026-04-14T09:30:00Z',
-    user_id: 1,
-    account_id: null,
+    revoked: false,
   },
   {
     id: 102,
     name: 'batch-worker',
-    key_prefix: 'sk_live_xyz',
-    is_active: true,
+    key_prefix: 'sk-xyz98765',
     rate_limit: 120,
     created_at: '2026-02-01T14:22:00Z',
-    last_used_at: null,
-    user_id: 2,
-    account_id: 501,
+    revoked: false,
   },
   {
     id: 103,
     name: 'rotated-out',
-    key_prefix: 'sk_live_old',
-    is_active: false,
+    key_prefix: 'sk-old11111',
     rate_limit: 60,
     created_at: '2025-11-20T09:00:00Z',
-    last_used_at: '2026-03-15T12:00:00Z',
-    user_id: 1,
-    account_id: null,
+    revoked: true,
   },
 ] as const;
 
