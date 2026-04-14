@@ -52,19 +52,25 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
   const response = await fetch(url.toString(), init);
 
   if (!response.ok) {
-    let body: { code?: string; message?: string; request_id?: string } = {};
+    // Backend error shape (internal/apierror/apierror.go) is:
+    //   { "error": { "message", "type", "code" }, "request_id": "..." }
+    // The BFF can also emit shallow shapes like { code: "csrf_check_failed" }
+    // for its own short-circuits, so we read both.
+    let body: {
+      code?: string;
+      message?: string;
+      request_id?: string;
+      error?: { code?: string; message?: string; type?: string };
+    } = {};
     try {
       body = await response.json();
     } catch {
       // swallow; keep generic error below
     }
     if (response.status === 401) handleSessionExpired();
-    throw new ApiError(
-      response.status,
-      body.code ?? 'unknown_error',
-      body.message ?? response.statusText,
-      body.request_id,
-    );
+    const code = body.error?.code ?? body.code ?? 'unknown_error';
+    const message = body.error?.message ?? body.message ?? response.statusText;
+    throw new ApiError(response.status, code, message, body.request_id);
   }
 
   if (response.status === 204) return undefined as T;

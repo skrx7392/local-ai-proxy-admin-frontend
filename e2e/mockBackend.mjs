@@ -11,28 +11,24 @@ import { createServer } from 'node:http';
 
 const PORT = Number(process.env.MOCK_BACKEND_PORT ?? 9999);
 
+// Matches internal/admin/admin.go::keyResponse. Field is `revoked`, not
+// `is_active`; list response omits last_used_at / user_id / account_id.
 const keys = [
   {
     id: 101,
     name: 'frontend-dev',
-    key_prefix: 'sk_live_abc',
-    is_active: true,
+    key_prefix: 'sk-abc12345',
     rate_limit: 60,
     created_at: '2026-01-12T10:00:00Z',
-    last_used_at: '2026-04-14T09:30:00Z',
-    user_id: 1,
-    account_id: null,
+    revoked: false,
   },
   {
     id: 102,
     name: 'batch-worker',
-    key_prefix: 'sk_live_xyz',
-    is_active: true,
+    key_prefix: 'sk-xyz98765',
     rate_limit: 120,
     created_at: '2026-02-01T14:22:00Z',
-    last_used_at: null,
-    user_id: 2,
-    account_id: 501,
+    revoked: false,
   },
 ];
 
@@ -162,12 +158,12 @@ const server = createServer(async (req, res) => {
 
   const adminPath = path.slice('/api/admin'.length);
 
-  // Keys.
+  // Keys. Backend accepts ?is_active=true|false (mapped to !revoked).
   if (adminPath === '/keys' && method === 'GET') {
     let list = [...keys];
     const isActive = url.searchParams.get('is_active');
-    if (isActive === 'true') list = list.filter((k) => k.is_active);
-    if (isActive === 'false') list = list.filter((k) => !k.is_active);
+    if (isActive === 'true') list = list.filter((k) => !k.revoked);
+    if (isActive === 'false') list = list.filter((k) => k.revoked);
     return json(res, 200, envelope(list, url));
   }
   if (adminPath === '/keys' && method === 'POST') {
@@ -175,15 +171,13 @@ const server = createServer(async (req, res) => {
     return json(res, 201, {
       id: 999,
       name: body?.name ?? 'new-key',
-      key_prefix: 'sk_live_new',
-      plaintext_key: 'sk_live_new_SECRET_ONLY_SHOWN_ONCE',
-      is_active: true,
-      rate_limit: 60,
-      created_at: new Date().toISOString(),
+      key: 'sk-' + 'a'.repeat(64),
+      key_prefix: 'sk-newabcdef',
+      rate_limit: body?.rate_limit ?? 60,
     });
   }
   if (/^\/keys\/\d+$/.test(adminPath) && method === 'DELETE') {
-    return json(res, 200, { ok: true });
+    return json(res, 200, { status: 'revoked' });
   }
 
   // Users.

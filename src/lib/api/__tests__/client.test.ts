@@ -39,11 +39,20 @@ describe('apiFetch', () => {
     );
   });
 
-  it('throws ApiError with parsed body on non-2xx', async () => {
+  it('throws ApiError parsed from the real backend error envelope', async () => {
     const { apiFetch } = await freshClient();
+    // Matches internal/apierror/apierror.go — message/type/code live under
+    // `error`, request_id is at the top level.
     fetchMock.mockResolvedValueOnce(
       new Response(
-        JSON.stringify({ code: 'not_found', message: 'nope', request_id: 'r1' }),
+        JSON.stringify({
+          error: {
+            code: 'not_found',
+            message: 'nope',
+            type: 'invalid_request_error',
+          },
+          request_id: 'r1',
+        }),
         { status: 404 },
       ),
     );
@@ -57,10 +66,25 @@ describe('apiFetch', () => {
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
+  it('also parses the BFF shallow-shape errors (e.g. csrf_check_failed)', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: 'csrf_check_failed' }), { status: 403 }),
+    );
+
+    await expect(apiFetch('/users')).rejects.toMatchObject({
+      status: 403,
+      code: 'csrf_check_failed',
+    });
+  });
+
   it('calls signOut and redirects to /login on 401', async () => {
     const { apiFetch } = await freshClient();
     fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ code: 'unauthorized' }), { status: 401 }),
+      new Response(
+        JSON.stringify({ error: { code: 'unauthorized' } }),
+        { status: 401 },
+      ),
     );
 
     await expect(apiFetch('/users')).rejects.toMatchObject({
@@ -76,7 +100,10 @@ describe('apiFetch', () => {
   it('only triggers a single signOut for a burst of concurrent 401s', async () => {
     const { apiFetch } = await freshClient();
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ code: 'unauthorized' }), { status: 401 }),
+      new Response(
+        JSON.stringify({ error: { code: 'unauthorized' } }),
+        { status: 401 },
+      ),
     );
 
     await Promise.allSettled([
