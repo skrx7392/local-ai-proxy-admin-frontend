@@ -28,3 +28,11 @@ export function parseEnvelope<T>(
     })
     .parse(raw);
 }
+
+// Detail / single-object envelope: `{ data: T }`. Backend drops `pagination`
+// via `omitempty` on single-resource responses (see PLAN.md "FE E tripwire").
+// Kept distinct from `parseEnvelope` so a list missing `pagination` fails
+// loudly instead of being silently coerced into a detail shape.
+export function parseDataEnvelope<T>(raw: unknown, item: ZodType<T>): T {
+  return z.object({ data: item }).parse(raw).data;
+}

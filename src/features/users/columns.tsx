@@ -1,7 +1,8 @@
 'use client';
 
-import { Badge, Button, HStack, Text, VStack } from '@chakra-ui/react';
+import { Badge, Button, HStack, Link as ChakraLink, Text, VStack } from '@chakra-ui/react';
 import type { ColumnDef } from '@tanstack/react-table';
+import NextLink from 'next/link';
 
 import type { User } from './schemas';
 
@@ -15,9 +16,14 @@ export function buildUserColumns(options: {
       header: 'User',
       cell: ({ row }) => (
         <VStack align="flex-start" gap="0">
-          <Text fontWeight="medium" data-testid={`user-email-${row.original.id}`}>
-            {row.original.email}
-          </Text>
+          <ChakraLink asChild fontWeight="medium">
+            <NextLink
+              href={`/users/${row.original.id}`}
+              data-testid={`user-email-${row.original.id}`}
+            >
+              {row.original.email}
+            </NextLink>
+          </ChakraLink>
           {row.original.name && (
             <Text fontSize="xs" color="fg.muted">
               {row.original.name}

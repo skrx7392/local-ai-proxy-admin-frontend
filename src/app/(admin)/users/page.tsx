@@ -116,7 +116,7 @@ export default function UsersPage() {
         <Box>
           <Heading textStyle="heading.md">Users</Heading>
           <Text color="fg.muted" textStyle="body.sm">
-            Activate or deactivate accounts. Role changes land in a later PR.
+            Activate or deactivate accounts. Open a user to change their role.
           </Text>
         </Box>
 
