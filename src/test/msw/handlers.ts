@@ -6,6 +6,10 @@ import {
   pricing,
   registrationEvents,
   registrationTokens,
+  usageByModel,
+  usageByUser,
+  usageSummary,
+  usageTimeseries,
   users,
 } from './fixtures';
 
@@ -170,4 +174,20 @@ export const handlers = [
     const url = new URL(request.url);
     return HttpResponse.json(envelope(registrationEvents, url));
   }),
+
+  // ---- Usage analytics (BE 2) ----
+  http.get(base('/usage/summary'), () =>
+    HttpResponse.json({ data: usageSummary }),
+  ),
+  http.get(base('/usage/by-model'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(envelope(usageByModel, url));
+  }),
+  http.get(base('/usage/by-user'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(envelope(usageByUser, url));
+  }),
+  http.get(base('/usage/timeseries'), () =>
+    HttpResponse.json({ data: usageTimeseries }),
+  ),
 ];
