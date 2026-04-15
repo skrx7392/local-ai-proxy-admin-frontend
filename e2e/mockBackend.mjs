@@ -64,14 +64,17 @@ const accounts = [
   },
 ];
 
+// PascalCase keys mirror Go's default encoder output for the untagged
+// CreditPricing struct.
 const pricing = [
   {
-    id: 201,
-    model: 'llama3.1:8b',
-    input_per_1m: 50,
-    output_per_1m: 150,
-    is_active: true,
-    created_at: '2025-10-01T00:00:00Z',
+    ID: 201,
+    ModelID: 'llama3.1:8b',
+    PromptRate: 0.00005,
+    CompletionRate: 0.00015,
+    TypicalCompletion: 500,
+    EffectiveFrom: '2025-10-01T00:00:00Z',
+    Active: true,
   },
 ];
 
@@ -243,11 +246,10 @@ const server = createServer(async (req, res) => {
     return json(res, 200, envelope(pricing, url));
   }
   if (adminPath === '/pricing' && method === 'POST') {
-    const body = await readJson(req).catch(() => ({}));
-    return json(res, 201, { id: 299, ...body });
+    return json(res, 200, { status: 'updated' });
   }
   if (/^\/pricing\/\d+$/.test(adminPath) && method === 'DELETE') {
-    return json(res, 200, { ok: true });
+    return json(res, 200, { status: 'deleted' });
   }
 
   // Registration tokens.

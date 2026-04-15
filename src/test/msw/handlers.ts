@@ -130,11 +130,13 @@ export const handlers = [
     const url = new URL(request.url);
     return HttpResponse.json(envelope(pricing, url));
   }),
-  http.post(base('/pricing'), async ({ request }) => {
-    const body = (await request.json()) as Record<string, unknown>;
-    return HttpResponse.json({ id: 299, ...body }, { status: 201 });
-  }),
-  http.delete(base('/pricing/:id'), () => HttpResponse.json({ ok: true })),
+  http.post(base('/pricing'), () =>
+    // Backend upsert returns a bare status — no echoed record.
+    HttpResponse.json({ status: 'updated' }),
+  ),
+  http.delete(base('/pricing/:id'), () =>
+    HttpResponse.json({ status: 'deleted' }),
+  ),
 
   // ---- Registration tokens ----
   http.get(base('/registration-tokens'), ({ request }) => {

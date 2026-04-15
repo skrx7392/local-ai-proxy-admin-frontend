@@ -89,22 +89,27 @@ export const accounts = [
   },
 ] as const;
 
+// Backend quirk: store.CreditPricing has no `json:"..."` tags, so
+// Go's encoder emits PascalCase field names. Fixture shape matches
+// what the backend actually writes on the wire for GET /api/admin/pricing.
 export const pricing = [
   {
-    id: 201,
-    model: 'llama3.1:8b',
-    input_per_1m: 50,
-    output_per_1m: 150,
-    is_active: true,
-    created_at: '2025-10-01T00:00:00Z',
+    ID: 201,
+    ModelID: 'llama3.1:8b',
+    PromptRate: 0.00005,
+    CompletionRate: 0.00015,
+    TypicalCompletion: 500,
+    EffectiveFrom: '2025-10-01T00:00:00Z',
+    Active: true,
   },
   {
-    id: 202,
-    model: 'llama3.1:70b',
-    input_per_1m: 500,
-    output_per_1m: 1500,
-    is_active: true,
-    created_at: '2025-10-01T00:00:00Z',
+    ID: 202,
+    ModelID: 'llama3.1:70b',
+    PromptRate: 0.0005,
+    CompletionRate: 0.0015,
+    TypicalCompletion: 500,
+    EffectiveFrom: '2025-10-01T00:00:00Z',
+    Active: true,
   },
 ] as const;
 
