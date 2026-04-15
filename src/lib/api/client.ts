@@ -35,6 +35,13 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v));
     }
   }
+  // FE PR D: opt every GET into the envelope shape. List endpoints gate the
+  // `{ data, pagination }` wrapper behind `envelope=1` until BE PR 7 flips
+  // the default; the param is a harmless no-op on other endpoints.
+  const method = opts.method ?? 'GET';
+  if (method === 'GET' && !url.searchParams.has('envelope')) {
+    url.searchParams.set('envelope', '1');
+  }
 
   const headers: Record<string, string> = {
     'X-Requested-With': 'XMLHttpRequest',
@@ -42,7 +49,7 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
   if (opts.body !== undefined) headers['Content-Type'] = 'application/json';
 
   const init: RequestInit = {
-    method: opts.method ?? 'GET',
+    method,
     headers,
     credentials: 'same-origin',
   };

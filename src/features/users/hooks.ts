@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api/client';
-import { legacyOrEnvelope } from '@/lib/api/envelope';
+import { parseEnvelope } from '@/lib/api/envelope';
 import { qk, type UsersFilters } from '@/lib/query/keys';
 
 import { UserSchema } from './schemas';
@@ -12,14 +12,13 @@ export function useUsersList(filters: UsersFilters) {
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/users', {
         params: {
-          envelope: 1,
           limit: filters.limit,
           offset: filters.offset,
           role: filters.role,
           is_active: filters.is_active,
         },
       });
-      return legacyOrEnvelope(raw, UserSchema);
+      return parseEnvelope(raw, UserSchema);
     },
   });
 }

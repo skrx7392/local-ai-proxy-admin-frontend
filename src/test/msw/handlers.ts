@@ -4,6 +4,7 @@ import {
   accounts,
   keys,
   pricing,
+  registrationEvents,
   registrationTokens,
   users,
 } from './fixtures';
@@ -19,15 +20,10 @@ const base = (path: string) => `${ORIGIN}/api/admin${path}`;
 function envelope<T>(
   items: readonly T[],
   url: URL,
-): { data: T[]; pagination?: { limit: number; offset: number; total: number } } {
+): { data: T[]; pagination: { limit: number; offset: number; total: number } } {
   const limit = Number(url.searchParams.get('limit') ?? '10');
   const offset = Number(url.searchParams.get('offset') ?? '0');
   const slice = items.slice(offset, offset + limit);
-  if (url.searchParams.get('envelope') !== '1') {
-    // Legacy bare-array shape — still supported by the helper while BE
-    // PR 7 is in flight.
-    return { data: [...slice] };
-  }
   return {
     data: [...slice],
     pagination: { limit, offset, total: items.length },
@@ -168,4 +164,10 @@ export const handlers = [
   http.delete(base('/registration-tokens/:id'), () =>
     HttpResponse.json({ status: 'revoked' }),
   ),
+
+  // ---- Registration events (audit feed) ----
+  http.get(base('/registrations'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(envelope(registrationEvents, url));
+  }),
 ];

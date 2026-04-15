@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api/client';
-import { legacyOrEnvelope } from '@/lib/api/envelope';
+import { parseEnvelope } from '@/lib/api/envelope';
 import { qk, type KeysFilters } from '@/lib/query/keys';
 
 import {
@@ -17,13 +17,12 @@ export function useKeysList(filters: KeysFilters) {
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/keys', {
         params: {
-          envelope: 1,
           limit: filters.limit,
           offset: filters.offset,
           is_active: filters.is_active,
         },
       });
-      return legacyOrEnvelope(raw, KeySchema);
+      return parseEnvelope(raw, KeySchema);
     },
   });
 }

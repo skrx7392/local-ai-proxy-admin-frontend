@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { DataTable, FilterBar, Pagination } from '@/components/data';
 import { ConfirmDialog, OneTimeSecretDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
+import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 
 import { CreateRegistrationTokenDialog } from '@/features/registrationTokens/CreateRegistrationTokenDialog';
 import { buildRegistrationTokenColumns } from '@/features/registrationTokens/columns';
@@ -19,12 +20,15 @@ import type {
   RegistrationTokenFormValues,
 } from '@/features/registrationTokens/schemas';
 
-type ActiveFilter = 'all' | 'active' | 'revoked';
+const ACTIVE_VALUES = ['all', 'active', 'revoked'] as const;
+type ActiveFilter = (typeof ACTIVE_VALUES)[number];
 
 export default function RegistrationTokensPage() {
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
-  const [limit, setLimit] = useState(25);
-  const [offset, setOffset] = useState(0);
+  const { searchParams, update } = useListSearchParams();
+
+  const activeFilter = readEnum(searchParams, 'active', ACTIVE_VALUES, 'all');
+  const limit = readInt(searchParams, 'limit', 25);
+  const offset = readInt(searchParams, 'offset', 0);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [createError, setCreateError] = useState<string | undefined>(undefined);
@@ -57,7 +61,7 @@ export default function RegistrationTokensPage() {
   );
 
   const rows = listQuery.data?.data ?? [];
-  const total = listQuery.data?.pagination?.total;
+  const total = listQuery.data?.pagination.total ?? 0;
 
   function handleCreate(values: RegistrationTokenFormValues): void {
     setCreateError(undefined);
@@ -81,9 +85,8 @@ export default function RegistrationTokensPage() {
     });
   }
 
-  function setFilterAndReset(next: ActiveFilter): void {
-    setActiveFilter(next);
-    setOffset(0);
+  function setActive(next: ActiveFilter): void {
+    update({ active: next === 'all' ? null : next }, { resetOffset: true });
   }
 
   return (
@@ -111,15 +114,15 @@ export default function RegistrationTokensPage() {
 
         <FilterBar
           hasActiveFilters={activeFilter !== 'all'}
-          onClearFilters={() => setFilterAndReset('all')}
+          onClearFilters={() => setActive('all')}
         >
           <HStack gap="2" data-testid="regtokens-filter-active">
-            {(['all', 'active', 'revoked'] as const).map((value) => (
+            {ACTIVE_VALUES.map((value) => (
               <Button
                 key={value}
                 size="sm"
                 variant={activeFilter === value ? 'solid' : 'outline'}
-                onClick={() => setFilterAndReset(value)}
+                onClick={() => setActive(value)}
                 data-testid={`regtokens-filter-active-${value}`}
               >
                 {value === 'all' ? 'All' : value === 'active' ? 'Active' : 'Revoked'}
@@ -148,10 +151,9 @@ export default function RegistrationTokensPage() {
           offset={offset}
           total={total}
           pageRowCount={rows.length}
-          onChange={({ limit: l, offset: o }) => {
-            setLimit(l);
-            setOffset(o);
-          }}
+          onChange={({ limit: l, offset: o }) =>
+            update({ limit: l, offset: o || null })
+          }
           isLoading={listQuery.isFetching}
         />
       </Stack>

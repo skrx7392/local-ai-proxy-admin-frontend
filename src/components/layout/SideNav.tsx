@@ -7,6 +7,7 @@ import {
   Home,
   Key,
   Link as LinkIcon,
+  UserPlus,
   Users,
 } from 'lucide-react';
 import NextLink from 'next/link';
@@ -26,6 +27,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/accounts', label: 'Accounts', icon: Coins },
   { href: '/pricing', label: 'Pricing', icon: DollarSign },
   { href: '/registration-tokens', label: 'Registration tokens', icon: LinkIcon },
+  { href: '/registrations', label: 'Registrations', icon: UserPlus },
 ];
 
 function isActive(pathname: string, href: string): boolean {
