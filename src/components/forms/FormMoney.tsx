@@ -20,7 +20,7 @@ export interface FormMoneyProps<TFieldValues extends FieldValues> {
    */
   storeUnit?: 'cents' | 'dollars';
   helperText?: ReactNode;
-  errorMessage?: string;
+  errorMessage?: string | undefined;
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;

@@ -101,23 +101,29 @@ export const handlers = [
     return HttpResponse.json(envelope(list, url));
   }),
   http.post(base('/accounts/:id/credits'), async ({ request }) => {
-    const body = (await request.json()) as { amount_cents?: number };
+    // Matches grantCredits response in internal/admin/admin.go
+    const body = (await request.json()) as { amount?: number };
+    const amount = body?.amount ?? 0;
     return HttpResponse.json({
-      ok: true,
-      amount_cents: body?.amount_cents ?? 0,
+      status: 'granted',
+      amount,
+      balance: 250 + amount,
     });
   }),
-  http.post(base('/accounts/:id/keys'), () =>
-    HttpResponse.json(
+  http.post(base('/accounts/:id/keys'), async ({ request }) => {
+    // Same shape as POST /api/admin/keys — backend reuses createKeyResponse.
+    const body = (await request.json()) as { name?: string; rate_limit?: number };
+    return HttpResponse.json(
       {
         id: 998,
-        name: 'account-scoped-key',
-        plaintext_key: 'sk_live_acct_SECRET_ONLY_SHOWN_ONCE',
-        is_active: true,
+        name: body?.name ?? 'account-scoped-key',
+        key: 'sk-' + 'b'.repeat(64),
+        key_prefix: 'sk-acctabc12',
+        rate_limit: body?.rate_limit ?? 60,
       },
       { status: 201 },
-    ),
-  ),
+    );
+  }),
 
   // ---- Pricing ----
   http.get(base('/pricing'), ({ request }) => {

@@ -63,13 +63,18 @@ export const users = [
   },
 ] as const;
 
+// Shape matches internal/admin/admin.go::listAccounts accountResponse.
+// Balances are floats (dollars, not integer cents) and the list includes
+// a pre-computed `available = balance - reserved`.
 export const accounts = [
   {
     id: 501,
     name: 'Default Admin Account',
     type: 'personal',
     is_active: true,
-    credits_remaining: 250000,
+    balance: 250.0,
+    reserved: 5.25,
+    available: 244.75,
     created_at: '2025-10-01T00:00:00Z',
   },
   {
@@ -77,7 +82,9 @@ export const accounts = [
     name: 'Batch Pipeline',
     type: 'service',
     is_active: true,
-    credits_remaining: 1000000,
+    balance: 1000.0,
+    reserved: 0.0,
+    available: 1000.0,
     created_at: '2026-01-15T00:00:00Z',
   },
 ] as const;

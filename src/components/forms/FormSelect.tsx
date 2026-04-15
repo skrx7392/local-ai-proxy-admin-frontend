@@ -17,7 +17,7 @@ export interface FormSelectProps<TFieldValues extends FieldValues> {
   /** If set, rendered as the first disabled option for placeholder UX. */
   placeholder?: string;
   helperText?: ReactNode;
-  errorMessage?: string;
+  errorMessage?: string | undefined;
   required?: boolean;
   disabled?: boolean;
   'data-testid'?: string;
