@@ -510,7 +510,7 @@ All tokens, recipes, skeletons, and animations land before **PR C** (first featu
 | **4** | Pagination rollout (opt-in) | Opt-in `?envelope=1` on existing list endpoints: `/api/admin/keys`, `/api/admin/users`, `/api/admin/accounts`, `/api/admin/pricing`, `/api/admin/registration-tokens`, `/api/admin/usage`. Filters: `role`, `is_active`, `type`. **No `q` parameter** (deferred per locked decision #6). |
 | **5** | Config + health | `GET /api/admin/config` (whitelisted snapshot, never secrets). `GET /api/admin/health` returns minimal `{status, checks: {db, ollama, usage_writer}, uptime_seconds, version}` — **pool stats go to Prometheus only, not here**. |
 | **6** | Prometheus metrics expansion | Full `pgxpool.Stat` exposure (total, acquired, idle, max, acquire_count, acquire_duration, new_conns, lifetime_destroys, idle_destroys, constructing). Plus previously P1-marked metrics (body size histograms, sweeper counters, registration counters, admin auth failures). |
-| **7** | Envelope default flip | Remove opt-in, envelope becomes the default on all list endpoints. `?envelope=0` returns legacy shape during a deprecation window. Sequenced after FE PR D has been stable in prod for ≥1 week. |
+| **7** | Envelope default flip | Remove opt-in, envelope becomes the default on all list endpoints. `?envelope=0` returns legacy shape for one release cycle as a safety valve for any ad-hoc `X-Admin-Key` scripts. Ships once FE D is merged + CI-green; no prod bake required (single-operator project). |
 
 ### PR 0 Detailed Spec
 
@@ -959,10 +959,47 @@ Add at least one assertion on the new field names (e.g. `_, ok := body[0]["model
 | **B** | BE 0 | Auth: **next-auth v5 (beta) with JWT strategy**. Credentials provider's `authorize()` calls backend `POST /api/auth/login`; on success, the `jwt` callback folds raw session token + user role + email + expiry into the JWT. The `session` callback returns **only** `{user: {id, email, role}, expires}` — it explicitly strips `backendToken` so it never reaches `useSession()` or `GET /api/auth/session`. JWT is encrypted with `AUTH_SECRET`, set httpOnly, sameSite=strict, scoped to `admin.ai.kinvee.in`, `maxAge=21600`. `/login` page (email + password via react-hook-form + Zod). `middleware.ts` runs `auth()` on all routes except `/login`, `/api/auth/*`, `/api/health` (everything else including `/styleguide` is gated). `/api/admin/[...path]` BFF reads the raw JWT via `getToken({ req, secret: process.env.AUTH_SECRET, raw: false })` (server-only, gets the full encrypted JWT payload including `backendToken`), injects `Authorization: Bearer <backendToken>` on the upstream call, strips client-provided auth headers. **Logout wiring**: NextAuth owns `POST /api/auth/signout`; backend invalidation happens via a NextAuth `events.signOut` handler that reads `message.token.backendToken` and calls backend `POST /api/auth/logout` with `Authorization: Bearer <backendToken>` before NextAuth clears the cookie (best-effort — cookie clears either way). Topbar session badge (expires_in countdown) + logout button that calls NextAuth's `signOut()`. |
 | **C** | BE 1 | First feature slice against **currently-existing** backend endpoints. Scope corrected to what the backend actually exposes:<br>• **Keys**: list, create, revoke<br>• **Users**: list, activate, deactivate (no update, no create via FE)<br>• **Accounts**: list, grant credits, create account-scoped key (no detail/update/delete — `/accounts/[id]` page synthesizes from list)<br>• **Pricing**: list, upsert, delete (soft)<br>• **Registration tokens**: list, create, revoke<br>`legacyOrEnvelope` helper accepts both envelope and bare-array responses during the PR 4 transition. Introduces `DataTable`, `FilterBar`, `Pagination`, `ConfirmDialog`, `OneTimeSecretDialog`. All forms via react-hook-form + Zod. |
 | **D** | BE 4 | Flip `apiFetch` to always send `envelope=1` on list paths. Drop `legacyOrEnvelope` — strict envelope schema. Real server-driven pagination in all DataTables. New `/registrations` page. URL-synced filters via `searchParams`. |
-| **E** | BE 3 | `/users/[id]` detail page + role change (optimistic UI + last-admin guard + 409 handling). `/keys/[id]` detail + rate-limit update + session-limit update. Extended detail schemas. |
+| **E** | BE 3 | `/users/[id]` detail page + role change (optimistic UI + last-admin guard + 409 handling). `/keys/[id]` detail + rate-limit update + session-limit update. Extended detail schemas. **See "FE E tripwire" below before starting.** |
 | **F** | BE 2 | `/usage` analytics: tabs for Summary / By Model / By User / Timeseries. Shared FilterBar above tabs. Dashboard `/` gets real StatCards + mini TimeseriesChart. All charts use `dataViz.ts` palette + theme object. |
 | **G** | BE 5 | `/config` page (read-only config snapshot, grouped: Backend / Limits / Observability / Build). Topbar health indicator (dot color from `/admin/health`) + tooltip with latest check results. |
 | **H** | — | Polish: empty states on every list, `error.tsx` per route group, loading skeletons, axe E2E audit per page, CHANGELOG, README screenshots, keyboard shortcuts (`g u`, `g k`, `/` for search). |
+
+### FE E tripwire — list vs. detail envelope shapes
+
+FE D shipped `parseEnvelope` as a **strict list parser**: requires `{data: T[], pagination: {limit, offset, total}}`. Calling it on a detail response will throw, because detail endpoints on the backend emit a different (but deliberate) shape.
+
+**Backend contract:**
+
+- **List** (`listUsers`, `listKeys`, etc.) → `writeEnvelope(w, slice, &Pagination{...})` → wire shape `{data: [...], pagination: {...}}`.
+- **Detail / single-object** (`getUser`, `updateUserRole`, `updateKeyRateLimit`, etc.) → `writeEnvelope(w, obj, nil)` → wire shape `{data: {...}}`. Pagination is dropped via `omitempty` in `internal/admin/envelope.go:13` because it's not meaningful for a single resource.
+
+This split is correct on the backend — don't "fix" it by padding detail responses with dummy pagination or by stripping the envelope off detail responses. Both options were considered and rejected:
+
+1. Dropping the envelope on detail endpoints re-introduces the pre-PR-4 inconsistency the envelope was built to kill.
+2. Padding with `{limit:1, offset:0, total:1}` lies on the wire and obscures the semantic difference.
+
+**Frontend action in FE E:**
+
+1. Add a sibling helper next to `parseEnvelope` in `src/lib/api/envelope.ts`:
+
+   ```ts
+   export function parseDataEnvelope<T>(raw: unknown, item: ZodType<T>): T {
+     return z.object({ data: item }).parse(raw).data;
+   }
+   ```
+
+2. New detail hooks (`useUserDetail`, `useKeyDetail`, plus the role-change and rate-limit mutation return-parsers) call `parseDataEnvelope`; list hooks continue to call `parseEnvelope`. Keep the two helpers distinct so a list response that arrives without pagination fails fast at the schema boundary — that's a backend bug, not a shape we should silently tolerate.
+
+**Backend readability cleanup (optional, bundle with FE E or BE 3):**
+
+Rename the two call shapes at the handler layer so intent is obvious:
+
+```go
+writeEnvelope(w, data, pag)  // stays as-is for lists
+writeDetail(w, data)          // new helper; internally calls writeEnvelope(w, data, nil)
+```
+
+Pure readability — no wire change, no client impact. Skip if it's not the hill anyone wants to die on.
 
 ### Repo Scaffold Files (PR A)
 
@@ -1286,7 +1323,7 @@ Frontend: A → B → C → D → E → F → G → H
 - **BE 1 can land in parallel with FE A/B/C** — store-only, no HTTP change.
 - **BE 2–5 interleave with FE D–G** — each FE PR waits on its paired BE PR.
 - **BE 6** (Prometheus expansion) is independent — ships any time after BE 5.
-- **BE 7** (envelope flip) waits until FE D has been stable in prod for ≥1 week.
+- **BE 7** (envelope flip) ships any time after FE D is merged. No prod bake — single-operator project means rollback + audit risks don't apply; verify by grepping for raw `fetch(` outside the BFF and confirming no unenvelope-aware scripts hit `/api/admin/*` with `X-Admin-Key`.
 
 ### Parallel-Safe Pairs
 
