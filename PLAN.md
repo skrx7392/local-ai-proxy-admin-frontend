@@ -906,7 +906,9 @@ Tests: spawn two goroutines running the mutation against two different admin row
 
 Small backend cleanups surfaced while verifying admin-API shapes against the frontend. Not blocking any FE work; all have a frontend workaround in place that can be deleted once the backend change ships.
 
-### BE Follow-up 1 — JSON tags on `store.CreditPricing`
+### BE Follow-up 1 — JSON tags on `store.CreditPricing` ✅ DONE
+
+**Status.** Backend change shipped in `skrx7392/local-ai-proxy#31` (2026-04-14). Frontend cleanup shipped in the follow-on admin-frontend PR same day — `PricingWireSchema` + transform deleted, fixtures + mockBackend switched to snake_case. Section kept for historical context.
 
 **Problem.** `GET /api/admin/pricing` emits PascalCase field names (`ID`, `ModelID`, `PromptRate`, `CompletionRate`, `TypicalCompletion`, `EffectiveFrom`, `Active`) because `store.CreditPricing` has no `json:"..."` tags, so Go's default encoder uses the Go field names directly. Every other admin resource (keys, users, accounts, registration tokens) uses snake_case, and the pricing **upsert** endpoint (`POST /api/admin/pricing`) already accepts snake_case (`model_id`, `prompt_rate`, etc.). The resource is therefore inconsistent with itself across read vs. write.
 

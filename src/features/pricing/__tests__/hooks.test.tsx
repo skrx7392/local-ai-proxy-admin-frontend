@@ -28,7 +28,7 @@ function wrapper() {
 describe('usePricingList', () => {
   useMockBackend();
 
-  it('parses PascalCase wire shape into snake_case Pricing objects', async () => {
+  it('returns envelope-parsed pricing rows in the snake_case wire shape', async () => {
     const { result } = renderHook(
       () => usePricingList({ limit: 10, offset: 0 }),
       { wrapper: wrapper() },
@@ -40,8 +40,6 @@ describe('usePricingList', () => {
     expect(first?.completion_rate).toBeCloseTo(0.00015);
     expect(first?.typical_completion).toBe(500);
     expect(first?.active).toBe(true);
-    // Make sure no PascalCase leaks through.
-    expect((first as unknown as { ModelID?: unknown }).ModelID).toBeUndefined();
   });
 });
 
