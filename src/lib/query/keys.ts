@@ -60,6 +60,14 @@ export const qk = {
     list: (filters: RegistrationsFilters) =>
       ['registrations', 'list', filters] as const,
   },
+  config: {
+    all: ['config'] as const,
+    snapshot: () => ['config', 'snapshot'] as const,
+  },
+  health: {
+    all: ['health'] as const,
+    status: () => ['health', 'status'] as const,
+  },
   usage: {
     all: ['usage'] as const,
     summary: (filters: CanonicalUsageFilters) =>
