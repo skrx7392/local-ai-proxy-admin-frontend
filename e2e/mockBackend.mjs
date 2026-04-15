@@ -57,7 +57,9 @@ const accounts = [
     name: 'Default Admin Account',
     type: 'personal',
     is_active: true,
-    credits_remaining: 250000,
+    balance: 250.0,
+    reserved: 5.25,
+    available: 244.75,
     created_at: '2025-10-01T00:00:00Z',
   },
 ];
@@ -218,12 +220,21 @@ const server = createServer(async (req, res) => {
   }
   if (/^\/accounts\/\d+\/credits$/.test(adminPath) && method === 'POST') {
     const body = await readJson(req).catch(() => ({}));
-    return json(res, 200, { ok: true, amount_cents: body?.amount_cents ?? 0 });
+    const amount = body?.amount ?? 0;
+    return json(res, 200, {
+      status: 'granted',
+      amount,
+      balance: 250 + amount,
+    });
   }
   if (/^\/accounts\/\d+\/keys$/.test(adminPath) && method === 'POST') {
+    const body = await readJson(req).catch(() => ({}));
     return json(res, 201, {
       id: 998,
-      plaintext_key: 'sk_live_acct_SECRET_ONLY_SHOWN_ONCE',
+      name: body?.name ?? 'account-scoped-key',
+      key: 'sk-' + 'b'.repeat(64),
+      key_prefix: 'sk-acctabc12',
+      rate_limit: body?.rate_limit ?? 60,
     });
   }
 
