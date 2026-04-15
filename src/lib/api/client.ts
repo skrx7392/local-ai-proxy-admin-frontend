@@ -7,6 +7,10 @@ export type ApiFetchOptions = {
   body?: unknown;
   params?: Record<string, string | number | boolean | undefined | null>;
   signal?: AbortSignal;
+  // Treat these HTTP statuses as success and return the parsed body instead
+  // of throwing ApiError. Used by `/admin/health`, which returns 503 with a
+  // valid `degraded` body — degraded is a first-class UI state, not an error.
+  allowedStatuses?: readonly number[];
 };
 
 // Guarded so a burst of concurrent 401s doesn't trigger N parallel signOut
@@ -57,6 +61,10 @@ export async function apiFetch<T>(path: string, opts: ApiFetchOptions = {}): Pro
   if (opts.signal) init.signal = opts.signal;
 
   const response = await fetch(url.toString(), init);
+
+  if (!response.ok && opts.allowedStatuses?.includes(response.status)) {
+    return (await response.json()) as T;
+  }
 
   if (!response.ok) {
     // Backend error shape (internal/apierror/apierror.go) is:

@@ -264,3 +264,59 @@ export const registrationTokens = [
     revoked: true,
   },
 ] as const;
+
+// BE 5 — `GET /api/admin/config`. Bare object (no envelope). Mirrors
+// internal/admin/config_health.go::ConfigSnapshot; must stay identical
+// to what `AdminConfigSchema` accepts on the FE.
+export const adminConfig = {
+  ollama_url: 'http://ollama.local:11434',
+  port: '8080',
+  log_level: 'info',
+  max_request_body_bytes: 52_428_800,
+  default_credit_grant: 1.5,
+  cors_origins: '*',
+  admin_rate_limit_per_minute: 10,
+  usage_channel_capacity: 1000,
+  admin_session_duration_hours: 6,
+  user_session_duration_hours: 168,
+  version: 'abc1234',
+  build_time: '2026-04-15T00:00:00Z',
+  go_version: 'go1.26.0',
+} as const;
+
+// BE 5 — `GET /api/admin/health`. Bare object, 200 when all checks pass.
+export const adminHealthOk = {
+  status: 'ok' as const,
+  checks: {
+    db: { status: 'ok' as const, latency_ms: 3 },
+    ollama: { status: 'ok' as const, latency_ms: 18 },
+    usage_writer: {
+      status: 'ok' as const,
+      queue_depth: 0,
+      queue_capacity: 1000,
+    },
+  },
+  uptime_seconds: 12_345,
+  version: 'abc1234',
+};
+
+// Degraded snapshot — served with HTTP 503. UI renders a red dot +
+// surfaces the `error` string on the failing check inside the tooltip.
+export const adminHealthDegraded = {
+  status: 'degraded' as const,
+  checks: {
+    db: { status: 'ok' as const, latency_ms: 4 },
+    ollama: {
+      status: 'error' as const,
+      latency_ms: 2000,
+      error: 'dial tcp: i/o timeout',
+    },
+    usage_writer: {
+      status: 'ok' as const,
+      queue_depth: 12,
+      queue_capacity: 1000,
+    },
+  },
+  uptime_seconds: 42,
+  version: 'abc1234',
+};

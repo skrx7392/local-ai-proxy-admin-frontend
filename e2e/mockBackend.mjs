@@ -191,6 +191,50 @@ const registrationEvents = [
   },
 ];
 
+// BE 5 — bare objects (no envelope). Mirrors the shapes the Go handler
+// encodes in internal/admin/config_health.go.
+const adminConfig = {
+  ollama_url: 'http://ollama.local:11434',
+  port: '8080',
+  log_level: 'info',
+  max_request_body_bytes: 52428800,
+  default_credit_grant: 1.5,
+  cors_origins: '*',
+  admin_rate_limit_per_minute: 10,
+  usage_channel_capacity: 1000,
+  admin_session_duration_hours: 6,
+  user_session_duration_hours: 168,
+  version: 'abc1234',
+  build_time: '2026-04-15T00:00:00Z',
+  go_version: 'go1.26.0',
+};
+
+const adminHealthOk = {
+  status: 'ok',
+  checks: {
+    db: { status: 'ok', latency_ms: 3 },
+    ollama: { status: 'ok', latency_ms: 18 },
+    usage_writer: { status: 'ok', queue_depth: 0, queue_capacity: 1000 },
+  },
+  uptime_seconds: 12345,
+  version: 'abc1234',
+};
+
+const adminHealthDegraded = {
+  status: 'degraded',
+  checks: {
+    db: { status: 'ok', latency_ms: 4 },
+    ollama: {
+      status: 'error',
+      latency_ms: 2000,
+      error: 'dial tcp: i/o timeout',
+    },
+    usage_writer: { status: 'ok', queue_depth: 12, queue_capacity: 1000 },
+  },
+  uptime_seconds: 42,
+  version: 'abc1234',
+};
+
 function json(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
@@ -390,6 +434,19 @@ const server = createServer(async (req, res) => {
   }
   if (adminPath === '/usage/timeseries' && method === 'GET') {
     return json(res, 200, { data: usageTimeseries });
+  }
+
+  // Config + health (BE 5). Both return bare objects (no envelope).
+  // Health toggles to 503 + degraded via ?degraded=1 to cover the
+  // topbar dot-color branch in a Playwright spec without restarting.
+  if (adminPath === '/config' && method === 'GET') {
+    return json(res, 200, adminConfig);
+  }
+  if (adminPath === '/health' && method === 'GET') {
+    if (url.searchParams.get('degraded') === '1') {
+      return json(res, 503, adminHealthDegraded);
+    }
+    return json(res, 200, adminHealthOk);
   }
 
   return json(res, 404, { code: 'not_found', path: adminPath, method });

@@ -2,6 +2,8 @@ import { HttpResponse, http } from 'msw';
 
 import {
   accounts,
+  adminConfig,
+  adminHealthOk,
   keys,
   pricing,
   registrationEvents,
@@ -190,4 +192,10 @@ export const handlers = [
   http.get(base('/usage/timeseries'), () =>
     HttpResponse.json({ data: usageTimeseries }),
   ),
+
+  // ---- Config + Health (BE 5) ----
+  // Both return bare objects (no envelope). Health returns 200 here;
+  // individual tests override via `server.use(...)` to simulate 503.
+  http.get(base('/config'), () => HttpResponse.json(adminConfig)),
+  http.get(base('/health'), () => HttpResponse.json(adminHealthOk)),
 ];

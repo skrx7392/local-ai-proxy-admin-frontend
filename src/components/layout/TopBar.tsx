@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { Box, Button, Flex, Spacer, Text } from '@chakra-ui/react';
 import { signOut, useSession } from 'next-auth/react';
 
+import { HealthIndicator } from './HealthIndicator';
+
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return 'expired';
   const h = Math.floor(seconds / 3600);
@@ -45,6 +47,7 @@ export function TopBar() {
           local-ai admin
         </Text>
         <Spacer />
+        <HealthIndicator />
         <Text textStyle="body.sm" color="fg.muted" data-testid="topbar-user">
           {session.user.email}
         </Text>

@@ -137,6 +137,36 @@ describe('apiFetch', () => {
     expect(arg.callbackUrl).toMatch(/^\/login\?callbackUrl=/);
   });
 
+  it('returns the parsed body when the status is in allowedStatuses', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ status: 'degraded', checks: {} }), {
+        status: 503,
+      }),
+    );
+
+    const body = await apiFetch<{ status: string }>('/health', {
+      allowedStatuses: [503],
+    });
+
+    expect(body.status).toBe('degraded');
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  it('still throws for statuses outside allowedStatuses', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ error: { code: 'boom', message: 'nope' } }),
+        { status: 500 },
+      ),
+    );
+
+    await expect(
+      apiFetch('/health', { allowedStatuses: [503] }),
+    ).rejects.toMatchObject({ status: 500, code: 'boom' });
+  });
+
   it('only triggers a single signOut for a burst of concurrent 401s', async () => {
     const { apiFetch } = await freshClient();
     fetchMock.mockResolvedValue(

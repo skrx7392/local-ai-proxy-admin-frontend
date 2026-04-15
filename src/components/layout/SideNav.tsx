@@ -8,6 +8,7 @@ import {
   Home,
   Key,
   Link as LinkIcon,
+  Settings,
   UserPlus,
   Users,
 } from 'lucide-react';
@@ -30,6 +31,7 @@ const NAV_ITEMS: readonly NavItem[] = [
   { href: '/pricing', label: 'Pricing', icon: DollarSign },
   { href: '/registration-tokens', label: 'Registration tokens', icon: LinkIcon },
   { href: '/registrations', label: 'Registrations', icon: UserPlus },
+  { href: '/config', label: 'Config', icon: Settings },
 ];
 
 function isActive(pathname: string, href: string): boolean {
