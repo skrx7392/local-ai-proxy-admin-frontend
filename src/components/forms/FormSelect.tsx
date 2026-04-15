@@ -12,7 +12,8 @@ export interface FormSelectOption {
 export interface FormSelectProps<TFieldValues extends FieldValues> {
   name: FieldPath<TFieldValues>;
   label: string;
-  control: Control<TFieldValues>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  control: Control<TFieldValues, any, any>;
   options: readonly FormSelectOption[];
   /** If set, rendered as the first disabled option for placeholder UX. */
   placeholder?: string;

@@ -113,14 +113,38 @@ export const pricing = [
   },
 ] as const;
 
+// Matches internal/admin/admin.go::listRegistrationTokens tokenResponse.
+// Fields: name (not label), credit_grant (singular), max_uses, uses,
+// revoked (not is_active), expires_at nullable.
 export const registrationTokens = [
   {
     id: 301,
-    label: 'ops-onboarding',
-    token_prefix: 'rt_abc',
-    is_active: true,
-    credits_grant: 10000,
+    name: 'ops-onboarding',
+    credit_grant: 10.0,
+    max_uses: 5,
+    uses: 2,
     created_at: '2026-03-01T00:00:00Z',
     expires_at: '2026-06-01T00:00:00Z',
+    revoked: false,
+  },
+  {
+    id: 302,
+    name: 'contractor-batch',
+    credit_grant: 5.0,
+    max_uses: 1,
+    uses: 0,
+    created_at: '2026-04-01T00:00:00Z',
+    expires_at: null,
+    revoked: false,
+  },
+  {
+    id: 303,
+    name: 'retired-link',
+    credit_grant: 5.0,
+    max_uses: 10,
+    uses: 3,
+    created_at: '2025-12-01T00:00:00Z',
+    expires_at: null,
+    revoked: true,
   },
 ] as const;

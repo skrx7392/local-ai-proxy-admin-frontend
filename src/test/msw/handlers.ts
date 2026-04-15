@@ -141,24 +141,31 @@ export const handlers = [
   // ---- Registration tokens ----
   http.get(base('/registration-tokens'), ({ request }) => {
     const url = new URL(request.url);
-    return HttpResponse.json(envelope(registrationTokens, url));
+    let list = [...registrationTokens];
+    const isActive = url.searchParams.get('is_active');
+    // Backend maps ?is_active to !revoked on this resource.
+    if (isActive === 'true') list = list.filter((t) => !t.revoked);
+    if (isActive === 'false') list = list.filter((t) => t.revoked);
+    return HttpResponse.json(envelope(list, url));
   }),
-  http.post(base('/registration-tokens'), () =>
-    HttpResponse.json(
+  http.post(base('/registration-tokens'), async ({ request }) => {
+    const body = (await request.json()) as {
+      name?: string;
+      credit_grant?: number;
+      max_uses?: number;
+    };
+    return HttpResponse.json(
       {
         id: 399,
-        label: 'new-token',
-        token_prefix: 'rt_new',
-        plaintext_token: 'rt_new_SECRET_ONLY_SHOWN_ONCE',
-        is_active: true,
-        credits_grant: 10000,
-        created_at: new Date().toISOString(),
-        expires_at: null,
+        name: body?.name ?? 'new-token',
+        token: 'reg-' + 'c'.repeat(64),
+        credit_grant: body?.credit_grant ?? 0,
+        max_uses: body?.max_uses ?? 1,
       },
       { status: 201 },
-    ),
-  ),
+    );
+  }),
   http.delete(base('/registration-tokens/:id'), () =>
-    HttpResponse.json({ ok: true }),
+    HttpResponse.json({ status: 'revoked' }),
   ),
 ];
