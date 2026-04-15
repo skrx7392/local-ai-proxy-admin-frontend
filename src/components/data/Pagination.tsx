@@ -7,9 +7,9 @@ import { useId } from 'react';
 export interface PaginationProps {
   limit: number;
   offset: number;
-  /** Total row count from the envelope. Undefined until envelope lands everywhere. */
-  total?: number | undefined;
-  /** Current page's actual row count — lets us disable "Next" when a partial page comes back. */
+  /** Total row count from the envelope — required now that every list returns an envelope. */
+  total: number;
+  /** Current page's actual row count — used for the displayed range only. */
   pageRowCount: number;
   pageSizes?: readonly number[];
   onChange: (next: { limit: number; offset: number }) => void;
@@ -32,10 +32,7 @@ export function Pagination({
   const lastIndex = offset + pageRowCount;
 
   const canGoPrev = offset > 0;
-  // If we know the total, trust it. Otherwise infer "probably more" from
-  // having received a full page — a short page means we've hit the end.
-  const canGoNext =
-    total !== undefined ? lastIndex < total : pageRowCount === limit;
+  const canGoNext = lastIndex < total;
 
   return (
     <HStack
@@ -71,9 +68,7 @@ export function Pagination({
 
       <HStack gap="3">
         <Text textStyle="body.sm" color="fg.muted" data-testid="pagination-range">
-          {total !== undefined
-            ? `${firstIndex}\u2013${lastIndex} of ${total}`
-            : `${firstIndex}\u2013${lastIndex}`}
+          {`${firstIndex}\u2013${lastIndex} of ${total}`}
         </Text>
         <Button
           size="sm"

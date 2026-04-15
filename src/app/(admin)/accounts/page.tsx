@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { DataTable, FilterBar, Pagination } from '@/components/data';
 import { OneTimeSecretDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
+import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 
 import { CreateAccountKeyDialog } from '@/features/accounts/CreateAccountKeyDialog';
 import { GrantCreditsDialog } from '@/features/accounts/GrantCreditsDialog';
@@ -21,14 +22,18 @@ import type {
   GrantCreditsFormValues,
 } from '@/features/accounts/schemas';
 
-type TypeFilter = 'all' | 'personal' | 'service';
-type ActiveFilter = 'all' | 'active' | 'inactive';
+const TYPE_VALUES = ['all', 'personal', 'service'] as const;
+const ACTIVE_VALUES = ['all', 'active', 'inactive'] as const;
+type TypeFilter = (typeof TYPE_VALUES)[number];
+type ActiveFilter = (typeof ACTIVE_VALUES)[number];
 
 export default function AccountsPage() {
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
-  const [limit, setLimit] = useState(25);
-  const [offset, setOffset] = useState(0);
+  const { searchParams, update } = useListSearchParams();
+
+  const typeFilter = readEnum(searchParams, 'type', TYPE_VALUES, 'all');
+  const activeFilter = readEnum(searchParams, 'active', ACTIVE_VALUES, 'all');
+  const limit = readInt(searchParams, 'limit', 25);
+  const offset = readInt(searchParams, 'offset', 0);
 
   const [grantTarget, setGrantTarget] = useState<Account | null>(null);
   const [grantError, setGrantError] = useState<string | undefined>(undefined);
@@ -49,10 +54,6 @@ export default function AccountsPage() {
   );
 
   const listQuery = useAccountsList(filters);
-
-  // Scoped to the currently-targeted account so the mutation knows which
-  // id to hit. The grant + create-key modals are mutually exclusive per
-  // row, so the narrower scope is fine.
   const grant = useGrantCredits(grantTarget?.id ?? null);
   const createKey = useCreateAccountKey(keyTarget?.id ?? null);
 
@@ -72,7 +73,7 @@ export default function AccountsPage() {
   );
 
   const rows = listQuery.data?.data ?? [];
-  const total = listQuery.data?.pagination?.total;
+  const total = listQuery.data?.pagination.total ?? 0;
 
   function handleGrant(values: GrantCreditsFormValues): void {
     setGrantError(undefined);
@@ -101,10 +102,16 @@ export default function AccountsPage() {
     });
   }
 
+  function setType(next: TypeFilter): void {
+    update({ type: next === 'all' ? null : next }, { resetOffset: true });
+  }
+
+  function setActive(next: ActiveFilter): void {
+    update({ active: next === 'all' ? null : next }, { resetOffset: true });
+  }
+
   function clearFilters(): void {
-    setTypeFilter('all');
-    setActiveFilter('all');
-    setOffset(0);
+    update({ type: null, active: null, offset: null });
   }
 
   const filtersActive = typeFilter !== 'all' || activeFilter !== 'all';
@@ -121,15 +128,12 @@ export default function AccountsPage() {
 
         <FilterBar hasActiveFilters={filtersActive} onClearFilters={clearFilters}>
           <HStack gap="2" data-testid="accounts-filter-type">
-            {(['all', 'personal', 'service'] as const).map((value) => (
+            {TYPE_VALUES.map((value) => (
               <Button
                 key={value}
                 size="sm"
                 variant={typeFilter === value ? 'solid' : 'outline'}
-                onClick={() => {
-                  setTypeFilter(value);
-                  setOffset(0);
-                }}
+                onClick={() => setType(value)}
                 data-testid={`accounts-filter-type-${value}`}
               >
                 {value === 'all' ? 'All types' : value}
@@ -137,15 +141,12 @@ export default function AccountsPage() {
             ))}
           </HStack>
           <HStack gap="2" data-testid="accounts-filter-active">
-            {(['all', 'active', 'inactive'] as const).map((value) => (
+            {ACTIVE_VALUES.map((value) => (
               <Button
                 key={value}
                 size="sm"
                 variant={activeFilter === value ? 'solid' : 'outline'}
-                onClick={() => {
-                  setActiveFilter(value);
-                  setOffset(0);
-                }}
+                onClick={() => setActive(value)}
                 data-testid={`accounts-filter-active-${value}`}
               >
                 {value === 'all' ? 'Any status' : value}
@@ -174,10 +175,9 @@ export default function AccountsPage() {
           offset={offset}
           total={total}
           pageRowCount={rows.length}
-          onChange={({ limit: l, offset: o }) => {
-            setLimit(l);
-            setOffset(o);
-          }}
+          onChange={({ limit: l, offset: o }) =>
+            update({ limit: l, offset: o || null })
+          }
           isLoading={listQuery.isFetching}
         />
       </Stack>

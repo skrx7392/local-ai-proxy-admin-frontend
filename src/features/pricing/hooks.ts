@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api/client';
-import { legacyOrEnvelope } from '@/lib/api/envelope';
+import { parseEnvelope } from '@/lib/api/envelope';
 import { qk, type PricingFilters } from '@/lib/query/keys';
 
 import { PricingSchema, type PricingFormValues } from './schemas';
@@ -12,12 +12,11 @@ export function usePricingList(filters: PricingFilters) {
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/pricing', {
         params: {
-          envelope: 1,
           limit: filters.limit,
           offset: filters.offset,
         },
       });
-      return legacyOrEnvelope(raw, PricingSchema);
+      return parseEnvelope(raw, PricingSchema);
     },
   });
 }

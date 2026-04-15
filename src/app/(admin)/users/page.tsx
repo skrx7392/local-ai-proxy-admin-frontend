@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { DataTable, FilterBar, Pagination } from '@/components/data';
 import { ConfirmDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
+import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 
 import { buildUserColumns } from '@/features/users/columns';
 import {
@@ -15,14 +16,23 @@ import {
 } from '@/features/users/hooks';
 import type { User } from '@/features/users/schemas';
 
-type RoleFilter = 'all' | 'admin' | 'user';
-type ActiveFilter = 'all' | 'active' | 'deactivated';
+const ROLE_VALUES = ['all', 'admin', 'user'] as const;
+const ACTIVE_VALUES = ['all', 'active', 'deactivated'] as const;
+type RoleFilter = (typeof ROLE_VALUES)[number];
+type ActiveFilter = (typeof ACTIVE_VALUES)[number];
 
 export default function UsersPage() {
-  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all');
-  const [activeFilter, setActiveFilter] = useState<ActiveFilter>('all');
-  const [limit, setLimit] = useState(25);
-  const [offset, setOffset] = useState(0);
+  const { searchParams, update } = useListSearchParams();
+
+  const roleFilter = readEnum(searchParams, 'role', ROLE_VALUES, 'all');
+  const activeFilter = readEnum(
+    searchParams,
+    'active',
+    ACTIVE_VALUES,
+    'all',
+  );
+  const limit = readInt(searchParams, 'limit', 25);
+  const offset = readInt(searchParams, 'offset', 0);
 
   const [activateTarget, setActivateTarget] = useState<User | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<User | null>(null);
@@ -56,7 +66,7 @@ export default function UsersPage() {
   );
 
   const rows = listQuery.data?.data ?? [];
-  const total = listQuery.data?.pagination?.total;
+  const total = listQuery.data?.pagination.total ?? 0;
 
   function handleActivate(): void {
     if (!activateTarget) return;
@@ -86,10 +96,16 @@ export default function UsersPage() {
     });
   }
 
+  function setRole(next: RoleFilter): void {
+    update({ role: next === 'all' ? null : next }, { resetOffset: true });
+  }
+
+  function setActive(next: ActiveFilter): void {
+    update({ active: next === 'all' ? null : next }, { resetOffset: true });
+  }
+
   function clearFilters(): void {
-    setRoleFilter('all');
-    setActiveFilter('all');
-    setOffset(0);
+    update({ role: null, active: null, offset: null });
   }
 
   const filtersActive = roleFilter !== 'all' || activeFilter !== 'all';
@@ -106,15 +122,12 @@ export default function UsersPage() {
 
         <FilterBar hasActiveFilters={filtersActive} onClearFilters={clearFilters}>
           <HStack gap="2" data-testid="users-filter-role">
-            {(['all', 'admin', 'user'] as const).map((value) => (
+            {ROLE_VALUES.map((value) => (
               <Button
                 key={value}
                 size="sm"
                 variant={roleFilter === value ? 'solid' : 'outline'}
-                onClick={() => {
-                  setRoleFilter(value);
-                  setOffset(0);
-                }}
+                onClick={() => setRole(value)}
                 data-testid={`users-filter-role-${value}`}
               >
                 {value === 'all' ? 'All roles' : value}
@@ -122,15 +135,12 @@ export default function UsersPage() {
             ))}
           </HStack>
           <HStack gap="2" data-testid="users-filter-active">
-            {(['all', 'active', 'deactivated'] as const).map((value) => (
+            {ACTIVE_VALUES.map((value) => (
               <Button
                 key={value}
                 size="sm"
                 variant={activeFilter === value ? 'solid' : 'outline'}
-                onClick={() => {
-                  setActiveFilter(value);
-                  setOffset(0);
-                }}
+                onClick={() => setActive(value)}
                 data-testid={`users-filter-active-${value}`}
               >
                 {value === 'all' ? 'Any status' : value}
@@ -159,10 +169,9 @@ export default function UsersPage() {
           offset={offset}
           total={total}
           pageRowCount={rows.length}
-          onChange={({ limit: l, offset: o }) => {
-            setLimit(l);
-            setOffset(o);
-          }}
+          onChange={({ limit: l, offset: o }) =>
+            update({ limit: l, offset: o || null })
+          }
           isLoading={listQuery.isFetching}
         />
       </Stack>

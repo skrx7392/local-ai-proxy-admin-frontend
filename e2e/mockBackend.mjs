@@ -89,6 +89,37 @@ const registrationTokens = [
   },
 ];
 
+const registrationEvents = [
+  {
+    id: 1,
+    kind: 'admin_bootstrap',
+    source: 'bootstrap',
+    user_id: 1,
+    user_email: 'admin@kinvee.in',
+    user_name: 'Krishna',
+    account_id: 501,
+    account_name: 'Default Admin Account',
+    account_type: 'personal',
+    registration_token_id: null,
+    metadata: null,
+    created_at: '2025-10-01T00:00:00Z',
+  },
+  {
+    id: 2,
+    kind: 'user_signup',
+    source: 'registration_token',
+    user_id: 2,
+    user_email: 'ops@kinvee.in',
+    user_name: 'Ops Bot',
+    account_id: 502,
+    account_name: 'Batch Pipeline',
+    account_type: 'service',
+    registration_token_id: 301,
+    metadata: { ip: '10.0.0.1' },
+    created_at: '2026-01-15T12:00:00Z',
+  },
+];
+
 function json(res, status, payload) {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(payload));
@@ -98,9 +129,6 @@ function envelope(items, url) {
   const limit = Number(url.searchParams.get('limit') ?? '10');
   const offset = Number(url.searchParams.get('offset') ?? '0');
   const slice = items.slice(offset, offset + limit);
-  if (url.searchParams.get('envelope') !== '1') {
-    return { data: slice };
-  }
   return {
     data: slice,
     pagination: { limit, offset, total: items.length },
@@ -271,6 +299,11 @@ const server = createServer(async (req, res) => {
   }
   if (/^\/registration-tokens\/\d+$/.test(adminPath) && method === 'DELETE') {
     return json(res, 200, { status: 'revoked' });
+  }
+
+  // Registration events (audit feed).
+  if (adminPath === '/registrations' && method === 'GET') {
+    return json(res, 200, envelope(registrationEvents, url));
   }
 
   return json(res, 404, { code: 'not_found', path: adminPath, method });

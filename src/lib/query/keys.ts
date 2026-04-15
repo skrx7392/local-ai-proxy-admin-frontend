@@ -15,6 +15,7 @@ export type UsersFilters = Pagination & { role?: string; is_active?: boolean };
 export type AccountsFilters = Pagination & { type?: string; is_active?: boolean };
 export type PricingFilters = Pagination;
 export type RegistrationTokensFilters = Pagination & { is_active?: boolean };
+export type RegistrationsFilters = Pagination;
 
 export const qk = {
   keys: {
@@ -40,5 +41,10 @@ export const qk = {
     all: ['registrationTokens'] as const,
     list: (filters: RegistrationTokensFilters) =>
       ['registrationTokens', 'list', filters] as const,
+  },
+  registrations: {
+    all: ['registrations'] as const,
+    list: (filters: RegistrationsFilters) =>
+      ['registrations', 'list', filters] as const,
   },
 } as const;

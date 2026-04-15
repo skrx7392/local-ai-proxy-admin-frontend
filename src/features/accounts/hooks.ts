@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api/client';
-import { legacyOrEnvelope } from '@/lib/api/envelope';
+import { parseEnvelope } from '@/lib/api/envelope';
 import { qk, type AccountsFilters } from '@/lib/query/keys';
 
 import { CreatedKeySchema, type CreatedKey } from '@/features/keys/schemas';
@@ -20,14 +20,13 @@ export function useAccountsList(filters: AccountsFilters) {
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/accounts', {
         params: {
-          envelope: 1,
           limit: filters.limit,
           offset: filters.offset,
           type: filters.type,
           is_active: filters.is_active,
         },
       });
-      return legacyOrEnvelope(raw, AccountSchema);
+      return parseEnvelope(raw, AccountSchema);
     },
   });
 }

@@ -58,16 +58,25 @@ describe('MSW harness — admin handlers', () => {
     expect(body.rate_limit).toBeGreaterThan(0);
   });
 
-  it('falls back to bare-array shape when envelope=1 is not set', async () => {
+  it('always returns the envelope shape now that FE auto-injects envelope=1', async () => {
     const response = await fetch('http://admin.local/api/admin/pricing');
-    const body = (await response.json()) as
-      | unknown[]
-      | { data: unknown[]; pagination?: unknown };
-    // Handler returns { data: [...] } with no pagination — still
-    // compatible with the legacyOrEnvelope helper.
-    expect(body).toHaveProperty('data');
-    expect(
-      (body as { pagination?: unknown }).pagination,
-    ).toBeUndefined();
+    const body = (await response.json()) as {
+      data: unknown[];
+      pagination: { total: number; limit: number; offset: number };
+    };
+    expect(body.data).toBeDefined();
+    expect(body.pagination.total).toBeGreaterThan(0);
+  });
+
+  it('serves the new /registrations audit feed', async () => {
+    const response = await fetch(
+      'http://admin.local/api/admin/registrations?envelope=1',
+    );
+    const body = (await response.json()) as {
+      data: Array<{ kind: string }>;
+      pagination: { total: number };
+    };
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data[0]?.kind).toBeTruthy();
   });
 });

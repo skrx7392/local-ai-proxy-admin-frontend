@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { DataTable, Pagination } from '@/components/data';
 import { ConfirmDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
+import { readInt, useListSearchParams } from '@/lib/url/listState';
 
 import { PricingFormDialog } from '@/features/pricing/PricingFormDialog';
 import { buildPricingColumns } from '@/features/pricing/columns';
@@ -17,8 +18,9 @@ import {
 import type { Pricing, PricingFormValues } from '@/features/pricing/schemas';
 
 export default function PricingPage() {
-  const [limit, setLimit] = useState(25);
-  const [offset, setOffset] = useState(0);
+  const { searchParams, update } = useListSearchParams();
+  const limit = readInt(searchParams, 'limit', 25);
+  const offset = readInt(searchParams, 'offset', 0);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formEditing, setFormEditing] = useState<Pricing | null>(null);
@@ -44,7 +46,7 @@ export default function PricingPage() {
   );
 
   const rows = listQuery.data?.data ?? [];
-  const total = listQuery.data?.pagination?.total;
+  const total = listQuery.data?.pagination.total ?? 0;
 
   function handleSubmit(values: PricingFormValues): void {
     setFormError(undefined);
@@ -110,10 +112,9 @@ export default function PricingPage() {
           offset={offset}
           total={total}
           pageRowCount={rows.length}
-          onChange={({ limit: l, offset: o }) => {
-            setLimit(l);
-            setOffset(o);
-          }}
+          onChange={({ limit: l, offset: o }) =>
+            update({ limit: l, offset: o || null })
+          }
           isLoading={listQuery.isFetching}
         />
       </Stack>

@@ -39,6 +39,46 @@ describe('apiFetch', () => {
     );
   });
 
+  it('auto-injects envelope=1 on GET requests', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response('{"data":[],"pagination":{"limit":25,"offset":0,"total":0}}', {
+        status: 200,
+      }),
+    );
+
+    await apiFetch('/users', { params: { limit: 25 } });
+
+    const [urlArg] = fetchMock.mock.calls[0]!;
+    const url = new URL(urlArg as string);
+    expect(url.searchParams.get('envelope')).toBe('1');
+    expect(url.searchParams.get('limit')).toBe('25');
+  });
+
+  it('does not override a caller-specified envelope value', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(new Response('{}', { status: 200 }));
+
+    await apiFetch('/users', { params: { envelope: 0 } });
+
+    const [urlArg] = fetchMock.mock.calls[0]!;
+    const url = new URL(urlArg as string);
+    expect(url.searchParams.get('envelope')).toBe('0');
+  });
+
+  it('does not add envelope=1 to mutating methods', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response('{"status":"ok"}', { status: 200 }),
+    );
+
+    await apiFetch('/keys/42', { method: 'DELETE' });
+
+    const [urlArg] = fetchMock.mock.calls[0]!;
+    const url = new URL(urlArg as string);
+    expect(url.searchParams.has('envelope')).toBe(false);
+  });
+
   it('throws ApiError parsed from the real backend error envelope', async () => {
     const { apiFetch } = await freshClient();
     // Matches internal/apierror/apierror.go — message/type/code live under

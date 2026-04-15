@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api/client';
-import { legacyOrEnvelope } from '@/lib/api/envelope';
+import { parseEnvelope } from '@/lib/api/envelope';
 import { qk, type RegistrationTokensFilters } from '@/lib/query/keys';
 
 import {
@@ -17,13 +17,12 @@ export function useRegistrationTokensList(filters: RegistrationTokensFilters) {
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/registration-tokens', {
         params: {
-          envelope: 1,
           limit: filters.limit,
           offset: filters.offset,
           is_active: filters.is_active,
         },
       });
-      return legacyOrEnvelope(raw, RegistrationTokenSchema);
+      return parseEnvelope(raw, RegistrationTokenSchema);
     },
   });
 }

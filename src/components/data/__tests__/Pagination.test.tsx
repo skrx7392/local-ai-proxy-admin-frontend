@@ -11,7 +11,7 @@ function wrap(ui: ReactNode) {
 }
 
 describe('Pagination', () => {
-  it('renders total-aware range text when total is known', () => {
+  it('renders total-aware range text', () => {
     wrap(
       <Pagination
         limit={10}
@@ -22,19 +22,6 @@ describe('Pagination', () => {
       />,
     );
     expect(screen.getByTestId('pagination-range')).toHaveTextContent('21–30 of 57');
-  });
-
-  it('renders range-only when total is unknown', () => {
-    wrap(
-      <Pagination
-        limit={10}
-        offset={0}
-        pageRowCount={7}
-        onChange={() => {}}
-      />,
-    );
-    expect(screen.getByTestId('pagination-range')).toHaveTextContent('1–7');
-    expect(screen.queryByText(/of /)).toBeNull();
   });
 
   it('disables Prev on the first page', () => {
@@ -58,18 +45,6 @@ describe('Pagination', () => {
         offset={20}
         total={27}
         pageRowCount={7}
-        onChange={() => {}}
-      />,
-    );
-    expect(screen.getByTestId('pagination-next')).toBeDisabled();
-  });
-
-  it('disables Next when the page is partial and total is unknown', () => {
-    wrap(
-      <Pagination
-        limit={10}
-        offset={10}
-        pageRowCount={4}
         onChange={() => {}}
       />,
     );
