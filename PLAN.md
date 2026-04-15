@@ -10,10 +10,11 @@ Canonical plan for the Admin API expansion on the `local-ai-proxy` backend and t
 2. [Stack](#stack)
 3. [Design System](#design-system)
 4. [Backend PR Sequence](#backend-pr-sequence)
-5. [Frontend PR Sequence](#frontend-pr-sequence)
-6. [Sequencing & Dependencies](#sequencing--dependencies)
-7. [Deployment Plan](#deployment-plan)
-8. [Next Steps](#next-steps)
+5. [Backend Follow-ups (discovered during FE PR C)](#backend-follow-ups-discovered-during-fe-pr-c)
+6. [Frontend PR Sequence](#frontend-pr-sequence)
+7. [Sequencing & Dependencies](#sequencing--dependencies)
+8. [Deployment Plan](#deployment-plan)
+9. [Next Steps](#next-steps)
 
 ---
 
@@ -898,6 +899,53 @@ Tests: spawn two goroutines running the mutation against two different admin row
 ### Rate-Limit Cache Invalidation
 
 **Not needed**. Auth middleware re-reads key each request; `ratelimit.Allow` adopts new capacity on next call. Verified by existing test `TestAllow_CapacityUpdateOnRateLimitChange`. A regression test in PR 3 locks this contract for the new admin endpoint.
+
+---
+
+## Backend Follow-ups (discovered during FE PR C)
+
+Small backend cleanups surfaced while verifying admin-API shapes against the frontend. Not blocking any FE work; all have a frontend workaround in place that can be deleted once the backend change ships.
+
+### BE Follow-up 1 — JSON tags on `store.CreditPricing`
+
+**Problem.** `GET /api/admin/pricing` emits PascalCase field names (`ID`, `ModelID`, `PromptRate`, `CompletionRate`, `TypicalCompletion`, `EffectiveFrom`, `Active`) because `store.CreditPricing` has no `json:"..."` tags, so Go's default encoder uses the Go field names directly. Every other admin resource (keys, users, accounts, registration tokens) uses snake_case, and the pricing **upsert** endpoint (`POST /api/admin/pricing`) already accepts snake_case (`model_id`, `prompt_rate`, etc.). The resource is therefore inconsistent with itself across read vs. write.
+
+**Current frontend workaround.** `src/features/pricing/schemas.ts` defines a `PricingWireSchema` that reads the PascalCase shape and pipes through `.transform()` into a clean snake_case `PricingSchema`. Everything internal (hooks, columns, dialogs) works against the normalized snake_case shape. This exists solely to translate for the one inconsistent endpoint.
+
+**Fix (backend).**
+
+File: `internal/store/store.go` line 134. Add JSON tags:
+
+```go
+type CreditPricing struct {
+    ID                int64     `json:"id"`
+    ModelID           string    `json:"model_id"`
+    PromptRate        float64   `json:"prompt_rate"`
+    CompletionRate    float64   `json:"completion_rate"`
+    TypicalCompletion int       `json:"typical_completion"`
+    EffectiveFrom     time.Time `json:"effective_from"`
+    Active            bool      `json:"active"`
+}
+```
+
+Nothing else in the backend needs to change — `internal/admin/admin.go::listPricing` already calls `json.Encoder.Encode(pricing)` with no transformation, so adding tags propagates automatically. `ListActivePricing` (`internal/store/credits.go:328`) doesn't change shape, just emits different field names on the wire.
+
+**Verify.** Existing tests:
+- `internal/admin/list_envelope_test.go::TestListPricing_Envelope_Pagination` — uses `map[string]any`, so won't break on key rename.
+- `internal/admin/list_envelope_test.go::TestListPricing_Legacy` — same.
+
+Add at least one assertion on the new field names (e.g. `_, ok := body[0]["model_id"]; ok` alongside the existing shape checks) so future regressions are caught.
+
+**Rollout order — important.** The frontend currently expects PascalCase on the wire. If the backend ships the tags first, the admin `/pricing` page breaks until the frontend follow-up deploys. Two safe sequences:
+
+1. **Defensive-parse first (safest):** land a small FE PR that makes `PricingWireSchema` tolerate *both* PascalCase and snake_case (union with `.or()` or two-shot parse). Deploy. Then backend PR adding tags. Then FE cleanup PR dropping the PascalCase branch and the transform. Three PRs total, zero downtime.
+2. **Coordinated deploy:** backend PR + matching FE PR (drop `PricingWireSchema`, use snake_case directly) reviewed together, merged in sequence with a <5min gap. Works if you control deploy timing for both.
+
+**Frontend follow-up** (after backend ships the tags):
+- Delete `PricingWireSchema` and the `.transform()` in `src/features/pricing/schemas.ts`; redefine `PricingSchema` directly as `z.object({ id, model_id, prompt_rate, completion_rate, typical_completion, effective_from, active })`.
+- Update `src/test/msw/fixtures.ts::pricing` — switch PascalCase fixture keys to snake_case.
+- Update `e2e/mockBackend.mjs::pricing` — same.
+- Update `src/features/pricing/__tests__/hooks.test.tsx::usePricingList` — the assertion that checks `ModelID` is `undefined` (i.e. nothing leaked) becomes redundant and can be removed.
 
 ---
 
