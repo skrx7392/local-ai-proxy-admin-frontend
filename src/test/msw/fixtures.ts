@@ -34,10 +34,13 @@ export const keys = [
   },
 ] as const;
 
+// Shape matches internal/admin/admin.go::listUsers anonymous response
+// struct. Includes `name` alongside email.
 export const users = [
   {
     id: 1,
     email: 'admin@kinvee.in',
+    name: 'Krishna',
     role: 'admin',
     is_active: true,
     created_at: '2025-10-01T00:00:00Z',
@@ -45,6 +48,7 @@ export const users = [
   {
     id: 2,
     email: 'ops@kinvee.in',
+    name: 'Ops Bot',
     role: 'user',
     is_active: true,
     created_at: '2025-12-05T12:00:00Z',
@@ -52,6 +56,7 @@ export const users = [
   {
     id: 3,
     email: 'retired@kinvee.in',
+    name: 'Retired User',
     role: 'user',
     is_active: false,
     created_at: '2025-08-15T09:00:00Z',
