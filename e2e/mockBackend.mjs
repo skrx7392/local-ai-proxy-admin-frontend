@@ -89,6 +89,77 @@ const registrationTokens = [
   },
 ];
 
+// Usage analytics fixtures — match the BE 2 wire shapes locked in PLAN.md #20.
+const usageSummary = {
+  requests: 12480,
+  prompt_tokens: 842110,
+  completion_tokens: 1204988,
+  total_tokens: 2047098,
+  credits: 48.72,
+  avg_duration_ms: 341.2,
+  errors: 37,
+};
+
+const usageByModel = [
+  { model: 'llama3.1:8b', requests: 9120, total_tokens: 1402044, credits: 21.03, avg_duration_ms: 311.5 },
+  { model: 'llama3.1:70b', requests: 3360, total_tokens: 645054, credits: 27.69, avg_duration_ms: 442.1 },
+];
+
+const usageByUser = [
+  {
+    owner_type: 'user',
+    user_id: 1,
+    email: 'admin@kinvee.in',
+    name: 'Krishna',
+    account_id: 501,
+    account_name: 'Default Admin Account',
+    account_type: 'personal',
+    requests: 8120,
+    total_tokens: 1102984,
+    credits: 18.44,
+    key_count: 2,
+  },
+  {
+    owner_type: 'service',
+    user_id: null,
+    email: null,
+    name: null,
+    account_id: 502,
+    account_name: 'Batch Pipeline',
+    account_type: 'service',
+    requests: 4200,
+    total_tokens: 928814,
+    credits: 29.88,
+    key_count: 1,
+  },
+  {
+    owner_type: 'unattributed',
+    user_id: null,
+    email: null,
+    name: null,
+    account_id: null,
+    account_name: null,
+    account_type: null,
+    requests: 160,
+    total_tokens: 15300,
+    credits: 0.4,
+    key_count: 1,
+  },
+];
+
+const usageTimeseries = {
+  interval: 'hour',
+  buckets: Array.from({ length: 24 }, (_, i) => ({
+    bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+    requests: 400 + ((i * 37) % 200),
+    prompt_tokens: 30000 + ((i * 1111) % 9000),
+    completion_tokens: 50000 + ((i * 2013) % 14000),
+    total_tokens: 80000 + ((i * 3124) % 23000),
+    credits: +(i * 0.23).toFixed(4),
+    errors: i % 5,
+  })),
+};
+
 const registrationEvents = [
   {
     id: 1,
@@ -304,6 +375,21 @@ const server = createServer(async (req, res) => {
   // Registration events (audit feed).
   if (adminPath === '/registrations' && method === 'GET') {
     return json(res, 200, envelope(registrationEvents, url));
+  }
+
+  // Usage analytics (BE 2). summary + timeseries use the detail envelope;
+  // by-model + by-user use the list envelope (locked decision #20).
+  if (adminPath === '/usage/summary' && method === 'GET') {
+    return json(res, 200, { data: usageSummary });
+  }
+  if (adminPath === '/usage/by-model' && method === 'GET') {
+    return json(res, 200, envelope(usageByModel, url));
+  }
+  if (adminPath === '/usage/by-user' && method === 'GET') {
+    return json(res, 200, envelope(usageByUser, url));
+  }
+  if (adminPath === '/usage/timeseries' && method === 'GET') {
+    return json(res, 200, { data: usageTimeseries });
   }
 
   return json(res, 404, { code: 'not_found', path: adminPath, method });

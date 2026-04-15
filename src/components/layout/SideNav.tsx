@@ -2,6 +2,7 @@
 
 import { Box, HStack, Stack, Text } from '@chakra-ui/react';
 import {
+  BarChart3,
   Coins,
   DollarSign,
   Home,
@@ -22,6 +23,7 @@ interface NavItem {
 
 const NAV_ITEMS: readonly NavItem[] = [
   { href: '/', label: 'Dashboard', icon: Home },
+  { href: '/usage', label: 'Usage', icon: BarChart3 },
   { href: '/keys', label: 'Keys', icon: Key },
   { href: '/users', label: 'Users', icon: Users },
   { href: '/accounts', label: 'Accounts', icon: Coins },

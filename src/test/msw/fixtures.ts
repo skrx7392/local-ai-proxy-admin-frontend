@@ -146,6 +146,92 @@ export const registrationEvents = [
 // Matches internal/admin/admin.go::listRegistrationTokens tokenResponse.
 // Fields: name (not label), credit_grant (singular), max_uses, uses,
 // revoked (not is_active), expires_at nullable.
+// Usage analytics fixtures. Match the BE 2 wire shapes locked in PLAN.md #20.
+// summary → detail envelope (`{data: obj}`), timeseries → same; by-model and
+// by-user → list envelope (`{data: [...], pagination}`).
+
+export const usageSummary = {
+  requests: 12_480,
+  prompt_tokens: 842_110,
+  completion_tokens: 1_204_988,
+  total_tokens: 2_047_098,
+  credits: 48.72,
+  avg_duration_ms: 341.2,
+  errors: 37,
+} as const;
+
+export const usageByModel = [
+  {
+    model: 'llama3.1:8b',
+    requests: 9_120,
+    total_tokens: 1_402_044,
+    credits: 21.03,
+    avg_duration_ms: 311.5,
+  },
+  {
+    model: 'llama3.1:70b',
+    requests: 3_360,
+    total_tokens: 645_054,
+    credits: 27.69,
+    avg_duration_ms: 442.1,
+  },
+] as const;
+
+export const usageByUser = [
+  {
+    owner_type: 'user' as const,
+    user_id: 1,
+    email: 'admin@kinvee.in',
+    name: 'Krishna',
+    account_id: 501,
+    account_name: 'Default Admin Account',
+    account_type: 'personal' as const,
+    requests: 8_120,
+    total_tokens: 1_102_984,
+    credits: 18.44,
+    key_count: 2,
+  },
+  {
+    owner_type: 'service' as const,
+    user_id: null,
+    email: null,
+    name: null,
+    account_id: 502,
+    account_name: 'Batch Pipeline',
+    account_type: 'service' as const,
+    requests: 4_200,
+    total_tokens: 928_814,
+    credits: 29.88,
+    key_count: 1,
+  },
+  {
+    owner_type: 'unattributed' as const,
+    user_id: null,
+    email: null,
+    name: null,
+    account_id: null,
+    account_name: null,
+    account_type: null,
+    requests: 160,
+    total_tokens: 15_300,
+    credits: 0.4,
+    key_count: 1,
+  },
+];
+
+export const usageTimeseries = {
+  interval: 'hour' as const,
+  buckets: Array.from({ length: 24 }, (_, i) => ({
+    bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+    requests: 400 + ((i * 37) % 200),
+    prompt_tokens: 30_000 + ((i * 1_111) % 9_000),
+    completion_tokens: 50_000 + ((i * 2_013) % 14_000),
+    total_tokens: 80_000 + ((i * 3_124) % 23_000),
+    credits: +(i * 0.23).toFixed(4),
+    errors: i % 5,
+  })),
+};
+
 export const registrationTokens = [
   {
     id: 301,
