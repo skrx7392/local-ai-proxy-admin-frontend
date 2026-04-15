@@ -3,6 +3,14 @@ import { getToken } from 'next-auth/jwt';
 
 const BACKEND_URL = process.env.BACKEND_URL;
 const AUTH_SECRET = process.env.AUTH_SECRET;
+const IS_PROD = process.env.NODE_ENV === 'production';
+// Must mirror cookies.sessionToken in src/lib/auth/options.ts. getToken
+// would otherwise auto-detect `secureCookie` from req.url, which is HTTP
+// when Next runs behind a TLS-terminating ingress — causing it to look
+// for the wrong cookie name and return null for a valid session.
+const SESSION_COOKIE_NAME = IS_PROD
+  ? '__Secure-authjs.session-token'
+  : 'authjs.session-token';
 
 // Strict allow-list for headers forwarded to the backend. Anything not on
 // this list is dropped — this closes the door on client-injected identity
@@ -52,7 +60,12 @@ async function proxy(req: NextRequest, { params }: { params: Promise<{ path: str
 
   // Read the full, un-stripped JWT — session callback projection would have
   // dropped backendToken.
-  const token = await getToken({ req, secret: AUTH_SECRET });
+  const token = await getToken({
+    req,
+    secret: AUTH_SECRET,
+    cookieName: SESSION_COOKIE_NAME,
+    secureCookie: IS_PROD,
+  });
   if (!token?.backendToken) {
     return NextResponse.json({ code: 'unauthorized' }, { status: 401 });
   }
