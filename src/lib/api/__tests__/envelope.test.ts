@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 
-import { parseEnvelope } from '../envelope';
+import { parseDataEnvelope, parseEnvelope } from '../envelope';
 
 const Item = z.object({ id: z.number(), name: z.string() });
 
@@ -46,5 +46,33 @@ describe('parseEnvelope', () => {
     expect(() => parseEnvelope({ something: 'else' }, Item)).toThrow();
     expect(() => parseEnvelope(null, Item)).toThrow();
     expect(() => parseEnvelope('string', Item)).toThrow();
+  });
+});
+
+describe('parseDataEnvelope', () => {
+  it('unwraps a { data: T } detail response', () => {
+    const raw = { data: { id: 7, name: 'z' } };
+    expect(parseDataEnvelope(raw, Item)).toEqual({ id: 7, name: 'z' });
+  });
+
+  it('ignores extra keys like pagination (should never be present but must not fail)', () => {
+    const raw = { data: { id: 1, name: 'a' }, pagination: null };
+    expect(parseDataEnvelope(raw, Item)).toEqual({ id: 1, name: 'a' });
+  });
+
+  it('throws when data is an array (list shape fed to detail parser)', () => {
+    const raw = { data: [{ id: 1, name: 'a' }] };
+    expect(() => parseDataEnvelope(raw, Item)).toThrow();
+  });
+
+  it('throws on a malformed item', () => {
+    expect(() =>
+      parseDataEnvelope({ data: { id: 'x', name: 'a' } }, Item),
+    ).toThrow();
+  });
+
+  it('throws on missing data key', () => {
+    expect(() => parseDataEnvelope({}, Item)).toThrow();
+    expect(() => parseDataEnvelope(null, Item)).toThrow();
   });
 });

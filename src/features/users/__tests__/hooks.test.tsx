@@ -8,19 +8,41 @@ import { ApiError } from '@/lib/api/errors';
 import { server } from '@/test/msw/server';
 import { useMockBackend } from '@/test/msw/useMockBackend';
 
-import { useActivateUser, useDeactivateUser, useUsersList } from '../hooks';
+import {
+  useActivateUser,
+  useChangeUserRole,
+  useDeactivateUser,
+  useUserDetail,
+  useUsersList,
+} from '../hooks';
+import { qk } from '@/lib/query/keys';
+import type { UserDetail } from '../schemas';
 
-function wrapper() {
-  const client = new QueryClient({
+function makeClient() {
+  return new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   });
+}
+
+function wrapper(client: QueryClient = makeClient()) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   };
 }
+
+const baseUser: UserDetail = {
+  id: 42,
+  email: 'a@example.com',
+  name: 'A',
+  role: 'user',
+  is_active: true,
+  account_id: null,
+  created_at: '2026-01-01T00:00:00Z',
+  updated_at: '2026-01-01T00:00:00Z',
+};
 
 describe('useUsersList', () => {
   useMockBackend();
@@ -122,5 +144,110 @@ describe('useDeactivateUser', () => {
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).code).toBe('last_admin');
     expect((err as ApiError).status).toBe(409);
+  });
+});
+
+describe('useUserDetail', () => {
+  useMockBackend();
+
+  it('fetches and parses the { data } detail envelope', async () => {
+    server.use(
+      http.get('*/api/admin/users/:id', ({ params }) =>
+        HttpResponse.json({ data: { ...baseUser, id: Number(params.id) } }),
+      ),
+    );
+
+    const { result } = renderHook(() => useUserDetail(42), {
+      wrapper: wrapper(),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.id).toBe(42);
+    expect(result.current.data?.updated_at).toBeTruthy();
+  });
+
+  it('is disabled when id is null (no request fires)', () => {
+    const { result } = renderHook(() => useUserDetail(null), {
+      wrapper: wrapper(),
+    });
+    expect(result.current.fetchStatus).toBe('idle');
+  });
+});
+
+describe('useChangeUserRole', () => {
+  useMockBackend();
+
+  it('optimistically updates the detail cache then overwrites with server truth', async () => {
+    const client = makeClient();
+    client.setQueryData(qk.users.detail(42), baseUser);
+
+    server.use(
+      http.put('*/api/admin/users/:id/role', async ({ request }) => {
+        const body = (await request.json()) as { role: string };
+        return HttpResponse.json({
+          data: {
+            ...baseUser,
+            role: body.role,
+            updated_at: '2026-06-06T00:00:00Z',
+          },
+        });
+      }),
+    );
+
+    const { result } = renderHook(() => useChangeUserRole(42), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      const p = result.current.mutateAsync('admin');
+      // onMutate is async (awaits cancelQueries) — wait for the optimistic
+      // write to land, then let the server response settle.
+      await waitFor(() =>
+        expect(
+          client.getQueryData<UserDetail>(qk.users.detail(42))?.role,
+        ).toBe('admin'),
+      );
+      await p;
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const fresh = client.getQueryData<UserDetail>(qk.users.detail(42));
+    expect(fresh?.role).toBe('admin');
+    expect(fresh?.updated_at).toBe('2026-06-06T00:00:00Z');
+  });
+
+  it('rolls back the optimistic cache on a 409 last_admin response', async () => {
+    const client = makeClient();
+    const original: UserDetail = { ...baseUser, role: 'admin' };
+    client.setQueryData(qk.users.detail(42), original);
+
+    server.use(
+      http.put('*/api/admin/users/:id/role', () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'last_admin',
+              message: 'Cannot remove the last active admin',
+              type: 'invalid_request_error',
+            },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+
+    const { result } = renderHook(() => useChangeUserRole(42), {
+      wrapper: wrapper(client),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync('user').catch(() => void 0);
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect((result.current.error as ApiError).code).toBe('last_admin');
+    // Cache must match the pre-mutation snapshot.
+    expect(client.getQueryData<UserDetail>(qk.users.detail(42))).toEqual(
+      original,
+    );
   });
 });

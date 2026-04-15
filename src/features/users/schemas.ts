@@ -21,3 +21,15 @@ export type User = z.infer<typeof UserSchema>;
 export const UserActivationResponseSchema = z.object({
   status: z.enum(['activated', 'deactivated']),
 });
+
+// Detail response from GET /users/:id and PUT /users/:id/role. Adds
+// `account_id` (nullable) and `updated_at` on top of the list shape.
+export const UserDetailSchema = UserSchema.extend({
+  account_id: z.number().int().nullable(),
+  updated_at: z.string(),
+});
+
+export type UserDetail = z.infer<typeof UserDetailSchema>;
+
+export const UserRoles = ['admin', 'user'] as const;
+export type UserRole = (typeof UserRoles)[number];

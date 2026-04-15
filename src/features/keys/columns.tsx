@@ -1,7 +1,8 @@
 'use client';
 
-import { Badge, Button, HStack, Text } from '@chakra-ui/react';
+import { Badge, Button, HStack, Link as ChakraLink, Text } from '@chakra-ui/react';
 import type { ColumnDef } from '@tanstack/react-table';
+import NextLink from 'next/link';
 
 import type { Key } from './schemas';
 
@@ -13,9 +14,14 @@ export function buildKeyColumns(options: {
       accessorKey: 'name',
       header: 'Name',
       cell: ({ row }) => (
-        <Text fontWeight="medium" data-testid={`key-name-${row.original.id}`}>
-          {row.original.name}
-        </Text>
+        <ChakraLink asChild fontWeight="medium">
+          <NextLink
+            href={`/keys/${row.original.id}`}
+            data-testid={`key-name-${row.original.id}`}
+          >
+            {row.original.name}
+          </NextLink>
+        </ChakraLink>
       ),
     },
     {

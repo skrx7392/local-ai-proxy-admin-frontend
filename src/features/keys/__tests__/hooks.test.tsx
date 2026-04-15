@@ -7,19 +7,43 @@ import { describe, expect, it } from 'vitest';
 import { server } from '@/test/msw/server';
 import { useMockBackend } from '@/test/msw/useMockBackend';
 
-import { useCreateKey, useKeysList, useRevokeKey } from '../hooks';
+import {
+  useCreateKey,
+  useKeyDetail,
+  useKeysList,
+  useRevokeKey,
+  useUpdateKeyRateLimit,
+  useUpdateKeySessionLimit,
+} from '../hooks';
+import { qk } from '@/lib/query/keys';
+import type { KeyDetail } from '../schemas';
 
-function wrapper() {
-  const client = new QueryClient({
+function makeClient() {
+  return new QueryClient({
     defaultOptions: {
       queries: { retry: false },
       mutations: { retry: false },
     },
   });
+}
+
+function wrapper(client: QueryClient = makeClient()) {
   return function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
   };
 }
+
+const baseKeyDetail: KeyDetail = {
+  id: 7,
+  name: 'spec-key',
+  key_prefix: 'sk-abc1234',
+  rate_limit: 60,
+  revoked: false,
+  created_at: '2026-01-01T00:00:00Z',
+  user_id: null,
+  account_id: null,
+  session_token_limit: null,
+};
 
 // Hook tests use the real BFF URL (apiFetch resolves against
 // window.location.origin); MSW's origin wildcard catches either shape.
@@ -125,5 +149,106 @@ describe('useRevokeKey', () => {
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
+  });
+});
+
+describe('useKeyDetail', () => {
+  useMockBackend();
+
+  it('fetches + parses the detail envelope', async () => {
+    server.use(
+      http.get('*/api/admin/keys/:id', ({ params }) =>
+        HttpResponse.json({
+          data: { ...baseKeyDetail, id: Number(params.id) },
+        }),
+      ),
+    );
+
+    const { result } = renderHook(() => useKeyDetail(7), {
+      wrapper: wrapper(),
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(result.current.data?.id).toBe(7);
+    expect(result.current.data?.session_token_limit).toBeNull();
+  });
+});
+
+describe('useUpdateKeyRateLimit', () => {
+  useMockBackend();
+
+  it('PUTs the new rate_limit and patches the detail cache', async () => {
+    const client = makeClient();
+    client.setQueryData(qk.keys.detail(7), baseKeyDetail);
+
+    server.use(
+      http.put('*/api/admin/keys/:id/rate-limit', async ({ request }) => {
+        const body = (await request.json()) as { rate_limit: number };
+        return HttpResponse.json({
+          data: { ...baseKeyDetail, rate_limit: body.rate_limit },
+        });
+      }),
+    );
+
+    const { result } = renderHook(() => useUpdateKeyRateLimit(7), {
+      wrapper: wrapper(client),
+    });
+    await act(async () => {
+      await result.current.mutateAsync({ rate_limit: 120 });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(client.getQueryData<KeyDetail>(qk.keys.detail(7))?.rate_limit).toBe(
+      120,
+    );
+  });
+});
+
+describe('useUpdateKeySessionLimit', () => {
+  useMockBackend();
+
+  it('parses the raw {status, limit} response and patches detail cache', async () => {
+    const client = makeClient();
+    client.setQueryData(qk.keys.detail(7), baseKeyDetail);
+
+    server.use(
+      http.put('*/api/admin/keys/:id/session-limit', async ({ request }) => {
+        const body = (await request.json()) as { limit: number | null };
+        return HttpResponse.json({ status: 'updated', limit: body.limit });
+      }),
+    );
+
+    const { result } = renderHook(() => useUpdateKeySessionLimit(7), {
+      wrapper: wrapper(client),
+    });
+    await act(async () => {
+      await result.current.mutateAsync({ limit: 5000 });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(
+      client.getQueryData<KeyDetail>(qk.keys.detail(7))?.session_token_limit,
+    ).toBe(5000);
+  });
+
+  it('accepts null to clear the limit', async () => {
+    const client = makeClient();
+    client.setQueryData(qk.keys.detail(7), {
+      ...baseKeyDetail,
+      session_token_limit: 5000,
+    });
+    server.use(
+      http.put('*/api/admin/keys/:id/session-limit', () =>
+        HttpResponse.json({ status: 'updated', limit: null }),
+      ),
+    );
+
+    const { result } = renderHook(() => useUpdateKeySessionLimit(7), {
+      wrapper: wrapper(client),
+    });
+    await act(async () => {
+      await result.current.mutateAsync({ limit: null });
+    });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(
+      client.getQueryData<KeyDetail>(qk.keys.detail(7))?.session_token_limit,
+    ).toBeNull();
   });
 });
