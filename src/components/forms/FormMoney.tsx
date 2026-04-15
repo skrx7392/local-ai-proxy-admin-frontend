@@ -1,13 +1,19 @@
 'use client';
 
 import { Field, Group, Input, InputAddon } from '@chakra-ui/react';
-import { Controller, type Control, type FieldPath, type FieldValues } from 'react-hook-form';
+import {
+  Controller,
+  type Control,
+  type FieldPath,
+  type FieldValues,
+} from 'react-hook-form';
 import type { ReactNode } from 'react';
 
 export interface FormMoneyProps<TFieldValues extends FieldValues> {
   name: FieldPath<TFieldValues>;
   label: string;
-  control: Control<TFieldValues>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  control: Control<TFieldValues, any, any>;
   /**
    * Render currency symbol as a leading addon. Default '$'. Purely visual —
    * the stored value is a raw integer (see storeUnit below).

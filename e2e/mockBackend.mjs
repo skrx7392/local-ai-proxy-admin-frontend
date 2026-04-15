@@ -81,12 +81,13 @@ const pricing = [
 const registrationTokens = [
   {
     id: 301,
-    label: 'ops-onboarding',
-    token_prefix: 'rt_abc',
-    is_active: true,
-    credits_grant: 10000,
+    name: 'ops-onboarding',
+    credit_grant: 10.0,
+    max_uses: 5,
+    uses: 2,
     created_at: '2026-03-01T00:00:00Z',
     expires_at: '2026-06-01T00:00:00Z',
+    revoked: false,
   },
 ];
 
@@ -254,16 +255,24 @@ const server = createServer(async (req, res) => {
 
   // Registration tokens.
   if (adminPath === '/registration-tokens' && method === 'GET') {
-    return json(res, 200, envelope(registrationTokens, url));
+    let list = [...registrationTokens];
+    const isActive = url.searchParams.get('is_active');
+    if (isActive === 'true') list = list.filter((t) => !t.revoked);
+    if (isActive === 'false') list = list.filter((t) => t.revoked);
+    return json(res, 200, envelope(list, url));
   }
   if (adminPath === '/registration-tokens' && method === 'POST') {
+    const body = await readJson(req).catch(() => ({}));
     return json(res, 201, {
       id: 399,
-      plaintext_token: 'rt_new_SECRET_ONLY_SHOWN_ONCE',
+      name: body?.name ?? 'new-token',
+      token: 'reg-' + 'c'.repeat(64),
+      credit_grant: body?.credit_grant ?? 0,
+      max_uses: body?.max_uses ?? 1,
     });
   }
   if (/^\/registration-tokens\/\d+$/.test(adminPath) && method === 'DELETE') {
-    return json(res, 200, { ok: true });
+    return json(res, 200, { status: 'revoked' });
   }
 
   return json(res, 404, { code: 'not_found', path: adminPath, method });
