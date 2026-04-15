@@ -64,17 +64,15 @@ const accounts = [
   },
 ];
 
-// PascalCase keys mirror Go's default encoder output for the untagged
-// CreditPricing struct.
 const pricing = [
   {
-    ID: 201,
-    ModelID: 'llama3.1:8b',
-    PromptRate: 0.00005,
-    CompletionRate: 0.00015,
-    TypicalCompletion: 500,
-    EffectiveFrom: '2025-10-01T00:00:00Z',
-    Active: true,
+    id: 201,
+    model_id: 'llama3.1:8b',
+    prompt_rate: 0.00005,
+    completion_rate: 0.00015,
+    typical_completion: 500,
+    effective_from: '2025-10-01T00:00:00Z',
+    active: true,
   },
 ];
 
