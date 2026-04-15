@@ -3,7 +3,7 @@
 import { Box, Button, Container, Heading, HStack, Stack, Text } from '@chakra-ui/react';
 import { useMemo, useState } from 'react';
 
-import { DataTable, Pagination } from '@/components/data';
+import { DataTable, EmptyState, Pagination } from '@/components/data';
 import { ConfirmDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
 import { readInt, useListSearchParams } from '@/lib/url/listState';
@@ -101,9 +101,10 @@ export default function PricingPage() {
           getRowId={(row) => String(row.id)}
           aria-label="Pricing"
           emptyState={
-            <Text color="fg.muted">
-              No active pricing rows — click “New pricing” to add one.
-            </Text>
+            <EmptyState
+              title="No active pricing rows"
+              description="Click “New pricing” to add one."
+            />
           }
         />
 

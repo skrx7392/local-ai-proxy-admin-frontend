@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { Box, Flex } from '@chakra-ui/react';
 
+import { ShortcutProvider } from '@/components/layout/ShortcutProvider';
 import { SideNav } from '@/components/layout/SideNav';
 import { TopBar } from '@/components/layout/TopBar';
 
@@ -14,6 +15,7 @@ import { TopBar } from '@/components/layout/TopBar';
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <Box minH="100vh" display="flex" flexDirection="column">
+      <ShortcutProvider />
       <TopBar />
       <Flex flex="1" minH="0">
         <SideNav />

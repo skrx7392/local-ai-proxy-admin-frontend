@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "e2e": "playwright test",
+    "e2e": "playwright test --grep-invert 'docs screenshots'",
+    "docs:screenshots": "SCREENSHOTS=1 playwright test e2e/screenshots.spec.ts",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write ."
   },
@@ -37,6 +38,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.49.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",

@@ -3,7 +3,7 @@
 import { Box, Button, Container, Heading, HStack, Stack, Text } from '@chakra-ui/react';
 import { useMemo, useState } from 'react';
 
-import { DataTable, FilterBar, Pagination } from '@/components/data';
+import { DataTable, EmptyState, FilterBar, Pagination } from '@/components/data';
 import { ConfirmDialog, OneTimeSecretDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
@@ -138,11 +138,17 @@ export default function RegistrationTokensPage() {
           getRowId={(row) => String(row.id)}
           aria-label="Registration tokens"
           emptyState={
-            <Text color="fg.muted">
-              {activeFilter === 'all'
-                ? 'No registration tokens yet — click “New token” to create one.'
-                : `No ${activeFilter} tokens.`}
-            </Text>
+            activeFilter === 'all' ? (
+              <EmptyState
+                title="No registration tokens yet"
+                description="Click “New token” to create one."
+              />
+            ) : (
+              <EmptyState
+                title={`No ${activeFilter} tokens`}
+                description="Try a different filter."
+              />
+            )
           }
         />
 

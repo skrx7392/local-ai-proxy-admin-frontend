@@ -1,6 +1,6 @@
 'use client';
 
-import { Box, Table, Text, VStack } from '@chakra-ui/react';
+import { Box, Table } from '@chakra-ui/react';
 import {
   flexRender,
   getCoreRowModel,
@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from 'react';
 
 import { DataTableSkeleton } from '@/components/loading';
+import { EmptyState } from './EmptyState';
 
 export interface DataTableProps<TData> {
   data: TData[];
@@ -60,14 +61,10 @@ export function DataTable<TData>({
         textAlign="center"
       >
         {emptyState ?? (
-          <VStack gap="1">
-            <Text textStyle="body.md" color="fg.default">
-              Nothing here yet
-            </Text>
-            <Text textStyle="body.sm" color="fg.muted">
-              Once there is data to show, it will appear in this table.
-            </Text>
-          </VStack>
+          <EmptyState
+            title="Nothing here yet"
+            description="Once there is data to show, it will appear in this table."
+          />
         )}
       </Box>
     );

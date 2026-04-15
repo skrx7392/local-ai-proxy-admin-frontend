@@ -136,6 +136,7 @@ export function ThemeControls() {
           </Text>
           <chakra.select
             data-testid="blur-select"
+            aria-label="Glass blur"
             value={blur}
             onChange={(e) => setBlur(e.target.value)}
             paddingInline="2"
