@@ -9,7 +9,6 @@ import {
   HStack,
   Link as ChakraLink,
   SimpleGrid,
-  Spinner,
   Stack,
   Text,
 } from '@chakra-ui/react';
@@ -20,6 +19,8 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { FormField } from '@/components/forms';
+import { FormSkeleton } from '@/components/loading';
+import { useMinDuration } from '@/lib/utils/useMinDuration';
 import { ApiError } from '@/lib/api/errors';
 import {
   useKeyDetail,
@@ -41,6 +42,7 @@ export default function KeyDetailPage() {
   const id = Number.isFinite(parsedId) && parsedId > 0 ? parsedId : null;
 
   const detail = useKeyDetail(id);
+  const showSkeleton = useMinDuration(detail.status === 'pending');
 
   if (id === null) {
     return (
@@ -50,13 +52,10 @@ export default function KeyDetailPage() {
     );
   }
 
-  if (detail.isLoading) {
+  if (showSkeleton) {
     return (
       <Container maxW="4xl" paddingBlock="8" paddingInline="6">
-        <HStack>
-          <Spinner size="sm" />
-          <Text color="fg.muted">Loading key…</Text>
-        </HStack>
+        <FormSkeleton fields={6} />
       </Container>
     );
   }

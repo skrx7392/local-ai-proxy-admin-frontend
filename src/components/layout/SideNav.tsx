@@ -1,38 +1,10 @@
 'use client';
 
 import { Box, HStack, Stack, Text } from '@chakra-ui/react';
-import {
-  BarChart3,
-  Coins,
-  DollarSign,
-  Home,
-  Key,
-  Link as LinkIcon,
-  Settings,
-  UserPlus,
-  Users,
-} from 'lucide-react';
 import NextLink from 'next/link';
 import { usePathname } from 'next/navigation';
-import type { ComponentType } from 'react';
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: ComponentType<{ size?: number }>;
-}
-
-const NAV_ITEMS: readonly NavItem[] = [
-  { href: '/', label: 'Dashboard', icon: Home },
-  { href: '/usage', label: 'Usage', icon: BarChart3 },
-  { href: '/keys', label: 'Keys', icon: Key },
-  { href: '/users', label: 'Users', icon: Users },
-  { href: '/accounts', label: 'Accounts', icon: Coins },
-  { href: '/pricing', label: 'Pricing', icon: DollarSign },
-  { href: '/registration-tokens', label: 'Registration tokens', icon: LinkIcon },
-  { href: '/registrations', label: 'Registrations', icon: UserPlus },
-  { href: '/config', label: 'Config', icon: Settings },
-];
+import { NAV_ITEMS } from '@/lib/nav/navItems';
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/') return pathname === '/';

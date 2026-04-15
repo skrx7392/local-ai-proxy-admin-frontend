@@ -3,7 +3,7 @@
 import { Box, Button, Container, Heading, HStack, Stack, Text } from '@chakra-ui/react';
 import { useMemo, useState } from 'react';
 
-import { DataTable, FilterBar, Pagination } from '@/components/data';
+import { DataTable, EmptyState, FilterBar, Pagination } from '@/components/data';
 import { ConfirmDialog, OneTimeSecretDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
@@ -129,13 +129,15 @@ export default function KeysPage() {
           aria-label="API keys"
           emptyState={
             activeFilter === 'all' ? (
-              <Text color="fg.muted">
-                No keys yet — click “New key” to create one.
-              </Text>
+              <EmptyState
+                title="No keys yet"
+                description="Click “New key” to create one."
+              />
             ) : (
-              <Text color="fg.muted">
-                No {activeFilter} keys match the current filter.
-              </Text>
+              <EmptyState
+                title={`No ${activeFilter} keys`}
+                description="Try a different filter."
+              />
             )
           }
         />

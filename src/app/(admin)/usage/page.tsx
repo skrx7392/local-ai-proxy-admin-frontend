@@ -13,7 +13,7 @@ import {
 } from '@chakra-ui/react';
 import { useMemo } from 'react';
 
-import { DataTable, Pagination } from '@/components/data';
+import { DataTable, EmptyState, Pagination } from '@/components/data';
 import {
   ModelBreakdownChart,
   StatCard,
@@ -241,7 +241,7 @@ function ByModelPanel({
           columns={columns}
           getRowId={(r) => r.model}
           aria-label="Usage by model"
-          emptyState={<Text color="fg.muted">No usage in this range.</Text>}
+          emptyState={<EmptyState title="No usage in this range" />}
         />
       )}
       <Pagination
@@ -292,7 +292,7 @@ function ByUserPanel({
                 : `un:${row.user_id ?? 'x'}:${row.account_id ?? 'x'}`
           }
           aria-label="Usage by owner"
-          emptyState={<Text color="fg.muted">No usage in this range.</Text>}
+          emptyState={<EmptyState title="No usage in this range" />}
         />
       )}
       <Pagination

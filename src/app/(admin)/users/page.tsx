@@ -3,7 +3,7 @@
 import { Box, Button, Container, Heading, HStack, Stack, Text } from '@chakra-ui/react';
 import { useMemo, useState } from 'react';
 
-import { DataTable, FilterBar, Pagination } from '@/components/data';
+import { DataTable, EmptyState, FilterBar, Pagination } from '@/components/data';
 import { ConfirmDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
@@ -156,11 +156,14 @@ export default function UsersPage() {
           getRowId={(row) => String(row.id)}
           aria-label="Users"
           emptyState={
-            <Text color="fg.muted">
-              {filtersActive
-                ? 'No users match the current filters.'
-                : 'No users yet.'}
-            </Text>
+            filtersActive ? (
+              <EmptyState
+                title="No users match"
+                description="Try a different filter."
+              />
+            ) : (
+              <EmptyState title="No users yet" />
+            )
           }
         />
 

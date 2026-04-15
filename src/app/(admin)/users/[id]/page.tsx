@@ -10,7 +10,6 @@ import {
   Link as ChakraLink,
   Separator,
   SimpleGrid,
-  Spinner,
   Stack,
   Text,
 } from '@chakra-ui/react';
@@ -18,6 +17,8 @@ import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
+import { FormSkeleton } from '@/components/loading';
+import { useMinDuration } from '@/lib/utils/useMinDuration';
 import { ApiError } from '@/lib/api/errors';
 import {
   useActiveAdminCount,
@@ -34,6 +35,7 @@ export default function UserDetailPage() {
   const detail = useUserDetail(id);
   const adminCount = useActiveAdminCount();
   const changeRole = useChangeUserRole(id ?? 0);
+  const showSkeleton = useMinDuration(detail.status === 'pending');
 
   const [roleError, setRoleError] = useState<string | null>(null);
 
@@ -45,13 +47,10 @@ export default function UserDetailPage() {
     );
   }
 
-  if (detail.isLoading) {
+  if (showSkeleton) {
     return (
       <Container maxW="4xl" paddingBlock="8" paddingInline="6">
-        <HStack>
-          <Spinner size="sm" />
-          <Text color="fg.muted">Loading user…</Text>
-        </HStack>
+        <FormSkeleton fields={6} />
       </Container>
     );
   }

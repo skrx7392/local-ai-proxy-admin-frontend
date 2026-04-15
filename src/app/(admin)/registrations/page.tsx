@@ -3,7 +3,7 @@
 import { Box, Container, Heading, Stack, Text } from '@chakra-ui/react';
 import { useMemo } from 'react';
 
-import { DataTable, Pagination } from '@/components/data';
+import { DataTable, EmptyState, Pagination } from '@/components/data';
 import { readInt, useListSearchParams } from '@/lib/url/listState';
 
 import { buildRegistrationColumns } from '@/features/registrations/columns';
@@ -38,9 +38,7 @@ export default function RegistrationsPage() {
           isLoading={listQuery.isLoading}
           getRowId={(row) => String(row.id)}
           aria-label="Registration events"
-          emptyState={
-            <Text color="fg.muted">No registration events recorded yet.</Text>
-          }
+          emptyState={<EmptyState title="No registration events recorded yet" />}
         />
 
         <Pagination
