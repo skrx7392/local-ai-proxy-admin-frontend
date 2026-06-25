@@ -4,15 +4,15 @@ metadata:
   name: admin-frontend-ingress
   namespace: local-ai-admin
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-cloudflare
 spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - admin.ai.kinvee.in
-      secretName: admin-frontend-tls
+        - admin.ai.skpodduturi.dev
+      secretName: admin-frontend-skpodduturi-tls
   rules:
-    - host: admin.ai.kinvee.in
+    - host: admin.ai.skpodduturi.dev
       http:
         paths:
           - path: /

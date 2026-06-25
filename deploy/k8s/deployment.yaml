@@ -34,7 +34,7 @@ spec:
             - name: BACKEND_URL
               value: "http://ai-proxy.local-ai.svc.cluster.local:80"
             - name: AUTH_URL
-              value: "https://admin.ai.kinvee.in"
+              value: "https://admin.ai.skpodduturi.dev"
             - name: AUTH_TRUST_HOST
               value: "true"
             - name: AUTH_SECRET
