@@ -22,6 +22,13 @@ export const metadata: Metadata = {
   description: 'Admin console for local-ai-proxy.',
 };
 
+// Every page must be rendered per request: the middleware serves a
+// nonce-based CSP, and statically prerendered HTML would ship inline
+// scripts without the matching nonce — browsers would block hydration.
+// This is an auth-gated console behind its own Node server, so static
+// prerendering bought nothing anyway.
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
