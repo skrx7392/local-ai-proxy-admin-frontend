@@ -14,11 +14,11 @@ import { ThemeProvider } from './ThemeProvider';
  * QueryProvider sits inside SessionProvider so 401 handlers in apiFetch
  * can dispatch signOut without tearing down the react-query cache.
  */
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, nonce }: { children: ReactNode; nonce?: string }) {
   return (
     <SessionProvider>
       <QueryProvider>
-        <ThemeProvider>
+        <ThemeProvider {...(nonce ? { nonce } : {})}>
           <ChakraProvider>{children}</ChakraProvider>
         </ThemeProvider>
       </QueryProvider>
