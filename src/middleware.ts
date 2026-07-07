@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
 
 import { auth } from '@/lib/auth/options';
+import { buildCsp, generateNonce } from '@/lib/security/csp';
 
 const PUBLIC_PATHS = new Set<string>(['/login', '/api/health']);
+
+const isProd = process.env.NODE_ENV === 'production';
 
 function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.has(pathname)) return true;
@@ -12,7 +15,19 @@ function isPublicPath(pathname: string): boolean {
 
 export default auth((req) => {
   const { pathname, search } = req.nextUrl;
-  const response = NextResponse.next();
+
+  // Nonce-based CSP: setting the header on the *request* lets Next.js pick
+  // up the nonce for its own inline hydration scripts; setting it on the
+  // *response* delivers the policy to the browser. The other security
+  // headers are request-independent and stay in next.config.ts.
+  const nonce = generateNonce();
+  const csp = buildCsp(nonce, isProd);
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', csp);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set('Content-Security-Policy', csp);
 
   // Preserved from A3: belt-and-braces noindex on /styleguide even now that
   // the route is auth-gated, so a misconfigured crawler can't index an

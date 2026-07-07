@@ -2,24 +2,11 @@ import type { NextConfig } from 'next'
 
 const isProd = process.env.NODE_ENV === 'production'
 
-// CSP: Chakra/emotion inject inline styles, and Next.js ships inline
-// bootstrap scripts for hydration — both need 'unsafe-inline' until a
-// nonce-based CSP lands. 'unsafe-eval' is dev-only (React refresh).
-const csp = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self' data:",
-  "connect-src 'self'",
-  "frame-ancestors 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "object-src 'none'",
-].join('; ')
-
+// The Content-Security-Policy header is NOT set here: it needs a
+// per-request script nonce, so src/middleware.ts builds it via
+// src/lib/security/csp.ts. Everything below is request-independent and
+// stays static.
 const securityHeaders = [
-  { key: 'Content-Security-Policy', value: csp },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'X-Frame-Options', value: 'DENY' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
