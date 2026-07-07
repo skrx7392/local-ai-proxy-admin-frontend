@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
+import { headers } from 'next/headers';
 
 import { Providers } from '@/components/providers';
 
@@ -22,7 +23,17 @@ export const metadata: Metadata = {
   description: 'Admin console for local-ai-proxy.',
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// Every page must be rendered per request: the middleware serves a
+// nonce-based CSP, and statically prerendered HTML would ship inline
+// scripts without the matching nonce — browsers would block hydration.
+// This is an auth-gated console behind its own Node server, so static
+// prerendering bought nothing anyway.
+export const dynamic = 'force-dynamic';
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Set by src/middleware.ts; forwarded to the inline script next-themes
+  // injects so it passes the nonce-based CSP.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
   return (
     <html
       lang="en"
@@ -30,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
       <body>
-        <Providers>{children}</Providers>
+        <Providers {...(nonce ? { nonce } : {})}>{children}</Providers>
       </body>
     </html>
   );
