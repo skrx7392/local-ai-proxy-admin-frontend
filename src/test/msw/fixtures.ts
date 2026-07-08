@@ -89,12 +89,14 @@ export const accounts = [
   },
 ] as const;
 
+// Rates are credits per 1M tokens (per-MTok) since backend PR #54 renamed
+// the fields and repriced to human-scale magnitudes.
 export const pricing = [
   {
     id: 201,
     model_id: 'llama3.1:8b',
-    prompt_rate: 0.00005,
-    completion_rate: 0.00015,
+    prompt_rate_per_mtok: 50,
+    completion_rate_per_mtok: 150,
     typical_completion: 500,
     effective_from: '2025-10-01T00:00:00Z',
     active: true,
@@ -102,8 +104,8 @@ export const pricing = [
   {
     id: 202,
     model_id: 'llama3.1:70b',
-    prompt_rate: 0.0005,
-    completion_rate: 0.0015,
+    prompt_rate_per_mtok: 500,
+    completion_rate_per_mtok: 1500,
     typical_completion: 500,
     effective_from: '2025-10-01T00:00:00Z',
     active: true,

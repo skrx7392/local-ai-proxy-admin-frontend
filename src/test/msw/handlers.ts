@@ -147,10 +147,33 @@ export const handlers = [
     const url = new URL(request.url);
     return HttpResponse.json(envelope(pricing, url));
   }),
-  http.post(base('/pricing'), () =>
-    // Backend upsert returns a bare status — no echoed record.
-    HttpResponse.json({ status: 'updated' }),
-  ),
+  http.post(base('/pricing'), async ({ request }) => {
+    // The backend decodes the upsert body strictly (backend PR #54):
+    // any unknown key — including the pre-rename `prompt_rate` /
+    // `completion_rate` — is rejected with 400 unknown_field.
+    const allowed = new Set([
+      'model_id',
+      'prompt_rate_per_mtok',
+      'completion_rate_per_mtok',
+      'typical_completion',
+    ]);
+    const body = (await request.json()) as Record<string, unknown> | null;
+    const unknown = Object.keys(body ?? {}).find((key) => !allowed.has(key));
+    if (unknown) {
+      return HttpResponse.json(
+        {
+          error: {
+            code: 'unknown_field',
+            type: 'invalid_request_error',
+            message: `Unknown field: ${unknown}`,
+          },
+        },
+        { status: 400 },
+      );
+    }
+    // Upsert returns a bare status — no echoed record.
+    return HttpResponse.json({ status: 'updated' });
+  }),
   http.delete(base('/pricing/:id'), () =>
     HttpResponse.json({ status: 'deleted' }),
   ),
