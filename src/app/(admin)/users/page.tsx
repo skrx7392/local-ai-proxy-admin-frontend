@@ -8,9 +8,13 @@ import { ConfirmDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 
-import { buildUserColumns } from '@/features/users/columns';
+import {
+  buildUserColumns,
+  LAST_ADMIN_DEACTIVATE_HINT,
+} from '@/features/users/columns';
 import {
   useActivateUser,
+  useActiveAdminCount,
   useDeactivateUser,
   useUsersList,
 } from '@/features/users/hooks';
@@ -50,8 +54,14 @@ export default function UsersPage() {
   );
 
   const listQuery = useUsersList(filters);
+  const adminCount = useActiveAdminCount();
   const activate = useActivateUser();
   const deactivate = useDeactivateUser();
+
+  // Same pre-flight guard the user detail page uses for role demotion:
+  // while the count is unknown the button stays enabled — the backend
+  // still rejects with 409 last_admin, which the dialog surfaces.
+  const activeAdmins = adminCount.data;
 
   const columns = useMemo(
     () =>
@@ -61,8 +71,13 @@ export default function UsersPage() {
           setDeactivateError(null);
           setDeactivateTarget(user);
         },
+        isLastActiveAdmin: (user) =>
+          user.role === 'admin' &&
+          user.is_active &&
+          activeAdmins !== undefined &&
+          activeAdmins <= 1,
       }),
-    [],
+    [activeAdmins],
   );
 
   const rows = listQuery.data?.data ?? [];
@@ -82,9 +97,7 @@ export default function UsersPage() {
       onSuccess: () => setDeactivateTarget(null),
       onError: (error) => {
         if (error instanceof ApiError && error.code === 'last_admin') {
-          setDeactivateError(
-            'This is the last active admin. Promote another user to admin before deactivating this one.',
-          );
+          setDeactivateError(LAST_ADMIN_DEACTIVATE_HINT);
           return;
         }
         setDeactivateError(
