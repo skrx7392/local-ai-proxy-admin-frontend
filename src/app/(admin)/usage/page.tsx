@@ -227,8 +227,11 @@ function ByModelPanel({
 
   return (
     <Stack gap="4" paddingTop="4">
+      {/* Skeleton height matches the chart's rendered height so the
+          loading → loaded swap cannot shift the table (and click targets)
+          below it. */}
       {query.isLoading ? (
-        <ChartSkeleton height={240} />
+        <ChartSkeleton height={280} />
       ) : rows.length > 0 ? (
         <ModelBreakdownChart data={rows} />
       ) : null}

@@ -8,12 +8,12 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 
+import { CHART_ENTER_ANIMATION, ChartFrame } from '@/components/charts';
 import { ChartSkeleton } from '@/components/loading';
 import { qualitativePalette, rechartsTheme } from '@/theme';
 
@@ -88,9 +88,14 @@ export function ChartDemo() {
           {loading ? (
             <ChartSkeleton height={240} />
           ) : (
-            <Box height="240px">
-              <ResponsiveContainer>
-                <AreaChart data={areaData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <ChartFrame height={240} minHeight={240} ariaLabel="Requests per day (demo)">
+              {({ width, height }) => (
+                <AreaChart
+                  width={width}
+                  height={height}
+                  data={areaData}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                >
                   <defs>
                     <linearGradient id={areaGradientId} x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={accent} stopOpacity={0.45} />
@@ -127,10 +132,11 @@ export function ChartDemo() {
                     stroke={accent}
                     strokeWidth={2}
                     fill={`url(#${areaGradientId})`}
+                    isAnimationActive={CHART_ENTER_ANIMATION}
                   />
                 </AreaChart>
-              </ResponsiveContainer>
-            </Box>
+              )}
+            </ChartFrame>
           )}
         </Stack>
 
@@ -139,9 +145,14 @@ export function ChartDemo() {
           {loading ? (
             <ChartSkeleton height={240} />
           ) : (
-            <Box height="240px">
-              <ResponsiveContainer>
-                <BarChart data={barData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+            <ChartFrame height={240} minHeight={240} ariaLabel="Tokens per model (demo)">
+              {({ width, height }) => (
+                <BarChart
+                  width={width}
+                  height={height}
+                  data={barData}
+                  margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+                >
                   <CartesianGrid
                     stroke={rechartsTheme.grid.stroke}
                     strokeDasharray={rechartsTheme.grid.strokeDasharray}
@@ -166,10 +177,15 @@ export function ChartDemo() {
                     labelStyle={rechartsTheme.tooltip.labelStyle}
                     cursor={{ fill: 'rgba(255,255,255,0.04)' }}
                   />
-                  <Bar dataKey="tokens" fill={accent2} radius={[4, 4, 0, 0]} />
+                  <Bar
+                    dataKey="tokens"
+                    fill={accent2}
+                    radius={[4, 4, 0, 0]}
+                    isAnimationActive={CHART_ENTER_ANIMATION}
+                  />
                 </BarChart>
-              </ResponsiveContainer>
-            </Box>
+              )}
+            </ChartFrame>
           )}
         </Stack>
       </Box>

@@ -1,20 +1,19 @@
 'use client';
 
-import { Box } from '@chakra-ui/react';
 import { useMemo } from 'react';
 import {
   CartesianGrid,
   Legend,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 
-import { usePrefersReducedMotion } from '@/hooks/ui/usePrefersReducedMotion';
 import { qualitativeAt, rechartsTheme } from '@/theme';
+
+import { CHART_ENTER_ANIMATION, ChartFrame } from './ChartFrame';
 
 import type { TimeseriesBucket, TimeseriesInterval } from '@/features/usage/schemas';
 
@@ -69,8 +68,6 @@ export function TimeseriesChart({
   minHeight = 240,
   ariaLabel = 'Usage over time',
 }: TimeseriesChartProps) {
-  const reduced = usePrefersReducedMotion();
-
   // Recharts mutates the `data` array internally for some interactions; pass
   // a fresh copy so react-query's immutable cache is never mutated in place.
   const data = useMemo(
@@ -83,16 +80,19 @@ export function TimeseriesChart({
   );
 
   return (
-    <Box
-      width="100%"
-      height={`${height}px`}
-      minHeight={`${minHeight}px`}
-      role="figure"
-      aria-label={ariaLabel}
-      data-testid="timeseries-chart"
+    <ChartFrame
+      height={height}
+      minHeight={minHeight}
+      ariaLabel={ariaLabel}
+      testId="timeseries-chart"
     >
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+      {({ width, height: chartHeight }) => (
+        <LineChart
+          width={width}
+          height={chartHeight}
+          data={data}
+          margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
+        >
           <CartesianGrid
             stroke={rechartsTheme.grid.stroke}
             strokeDasharray={rechartsTheme.grid.strokeDasharray}
@@ -127,11 +127,11 @@ export function TimeseriesChart({
               stroke={qualitativeAt(i)}
               strokeWidth={2}
               dot={false}
-              isAnimationActive={!reduced}
+              isAnimationActive={CHART_ENTER_ANIMATION}
             />
           ))}
         </LineChart>
-      </ResponsiveContainer>
-    </Box>
+      )}
+    </ChartFrame>
   );
 }
