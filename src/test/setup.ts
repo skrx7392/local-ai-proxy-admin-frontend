@@ -27,3 +27,13 @@ if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver =
     ResizeObserverStub as unknown as typeof ResizeObserver;
 }
+
+// Ark UI's combobox scrolls the highlighted option into view; jsdom has no
+// layout engine and doesn't implement scrollIntoView. No-op keeps keyboard
+// navigation from throwing in tests.
+if (
+  typeof Element !== 'undefined' &&
+  typeof Element.prototype.scrollIntoView !== 'function'
+) {
+  Element.prototype.scrollIntoView = () => {};
+}

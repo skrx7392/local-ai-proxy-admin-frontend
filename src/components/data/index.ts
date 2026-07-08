@@ -4,6 +4,11 @@ export { Pagination } from './Pagination';
 export type { PaginationProps } from './Pagination';
 export { FilterBar } from './FilterBar';
 export type { FilterBarProps } from './FilterBar';
+export { FilterCombobox } from './FilterCombobox';
+export type {
+  FilterComboboxOption,
+  FilterComboboxProps,
+} from './FilterCombobox';
 export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
 export { QueryErrorState } from './QueryErrorState';
