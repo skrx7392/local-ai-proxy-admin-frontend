@@ -1318,36 +1318,38 @@ function CopyVoiceSection() {
 
       <Stack gap="2">
         <Text textStyle="heading.sm">Boolean as ✓ / —</Text>
-        <Table.Root>
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Feature</Table.ColumnHeader>
-              <Table.ColumnHeader>Enabled</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {features.map((f) => (
-              <Table.Row key={f.feature}>
-                <Table.Cell>
-                  <HStack gap="2">
-                    <Key size={14} aria-hidden="true" />
-                    <Text>{f.feature}</Text>
-                  </HStack>
-                </Table.Cell>
-                <Table.Cell>
-                  {f.enabled ? (
-                    <HStack gap="1" color="fg.success">
-                      <CheckCircle size={14} aria-hidden="true" />
-                      <Text as="span">Yes</Text>
-                    </HStack>
-                  ) : (
-                    <Text color="fg.subtle">—</Text>
-                  )}
-                </Table.Cell>
+        <Box overflowX="auto" maxWidth="100%">
+          <Table.Root>
+            <Table.Header>
+              <Table.Row>
+                <Table.ColumnHeader>Feature</Table.ColumnHeader>
+                <Table.ColumnHeader>Enabled</Table.ColumnHeader>
               </Table.Row>
-            ))}
-          </Table.Body>
-        </Table.Root>
+            </Table.Header>
+            <Table.Body>
+              {features.map((f) => (
+                <Table.Row key={f.feature}>
+                  <Table.Cell>
+                    <HStack gap="2">
+                      <Key size={14} aria-hidden="true" />
+                      <Text>{f.feature}</Text>
+                    </HStack>
+                  </Table.Cell>
+                  <Table.Cell>
+                    {f.enabled ? (
+                      <HStack gap="1" color="fg.success">
+                        <CheckCircle size={14} aria-hidden="true" />
+                        <Text as="span">Yes</Text>
+                      </HStack>
+                    ) : (
+                      <Text color="fg.subtle">—</Text>
+                    )}
+                  </Table.Cell>
+                </Table.Row>
+              ))}
+            </Table.Body>
+          </Table.Root>
+        </Box>
       </Stack>
     </Stack>
   );

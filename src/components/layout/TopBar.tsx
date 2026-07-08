@@ -5,6 +5,7 @@ import { Box, Button, Flex, Spacer, Text } from '@chakra-ui/react';
 import { signOut, useSession } from 'next-auth/react';
 
 import { HealthIndicator } from './HealthIndicator';
+import { MobileNavDrawer } from './MobileNavDrawer';
 import { NavSearch } from './NavSearch';
 
 function formatCountdown(seconds: number): string {
@@ -20,10 +21,7 @@ export function TopBar() {
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
 
   useEffect(() => {
-    const id = window.setInterval(
-      () => setNow(Math.floor(Date.now() / 1000)),
-      1000,
-    );
+    const id = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
     return () => window.clearInterval(id);
   }, []);
 
@@ -39,24 +37,44 @@ export function TopBar() {
       as="header"
       borderBottomWidth="1px"
       borderColor="border.muted"
-      paddingInline="6"
+      paddingInline={{ base: '3', md: '6' }}
       paddingBlock="3"
       data-testid="topbar"
     >
-      <Flex align="center" gap="4">
-        <Text textStyle="body.sm" fontWeight="medium">
+      {/*
+       * Single-line header at every width: fixed-width items never shrink,
+       * the email is the only flexible item and truncates with an ellipsis.
+       */}
+      <Flex align="center" gap={{ base: '2', md: '4' }} wrap="nowrap" minW="0">
+        <MobileNavDrawer />
+        <Text textStyle="body.sm" fontWeight="medium" whiteSpace="nowrap" flexShrink="0">
           local-ai admin
         </Text>
         <Spacer />
-        <NavSearch />
-        <HealthIndicator />
-        <Text textStyle="body.sm" color="fg.muted" data-testid="topbar-user">
+        {/* The go-to search is a power-user affordance; drop it on narrow
+            viewports so the essentials (health, identity, logout) fit. */}
+        <Box hideBelow="md">
+          <NavSearch />
+        </Box>
+        <Box flexShrink="0">
+          <HealthIndicator />
+        </Box>
+        <Text
+          textStyle="body.sm"
+          color="fg.muted"
+          truncate
+          minW="0"
+          maxW={{ base: '110px', sm: '180px', md: '280px' }}
+          data-testid="topbar-user"
+        >
           {session.user.email}
         </Text>
         {remaining !== undefined && (
           <Text
             textStyle="body.xs"
             color={remaining < 300 ? 'red.500' : 'fg.muted'}
+            whiteSpace="nowrap"
+            flexShrink="0"
             data-testid="topbar-expires"
           >
             {formatCountdown(remaining)}
@@ -65,6 +83,7 @@ export function TopBar() {
         <Button
           size="sm"
           variant="ghost"
+          flexShrink="0"
           data-testid="topbar-logout"
           onClick={() => signOut({ callbackUrl: '/login' })}
         >

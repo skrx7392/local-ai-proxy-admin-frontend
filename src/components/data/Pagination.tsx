@@ -37,13 +37,17 @@ export function Pagination({
   return (
     <HStack
       gap="4"
+      rowGap="2"
       justifyContent="space-between"
+      // On narrow viewports the two control groups wrap as whole units —
+      // never letting the range text wrap one character per line.
+      flexWrap="wrap"
       paddingBlock="3"
       data-testid="pagination"
     >
-      <HStack gap="2">
+      <HStack gap="2" flexShrink="0">
         <label htmlFor={selectId}>
-          <Text textStyle="body.sm" color="fg.muted">
+          <Text textStyle="body.sm" color="fg.muted" whiteSpace="nowrap">
             Rows per page
           </Text>
         </label>
@@ -66,8 +70,13 @@ export function Pagination({
         </NativeSelect.Root>
       </HStack>
 
-      <HStack gap="3">
-        <Text textStyle="body.sm" color="fg.muted" data-testid="pagination-range">
+      <HStack gap="3" flexShrink="0">
+        <Text
+          textStyle="body.sm"
+          color="fg.muted"
+          whiteSpace="nowrap"
+          data-testid="pagination-range"
+        >
           {`${firstIndex}\u2013${lastIndex} of ${total}`}
         </Text>
         <Button
