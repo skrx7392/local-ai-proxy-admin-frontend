@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { users } from '@/test/msw/fixtures';
 import { server } from '@/test/msw/server';
@@ -13,8 +13,11 @@ import { system } from '@/theme';
 import UsersPage from '../users/page';
 
 // useListSearchParams needs the app-router hooks; NextLink works in jsdom.
+// `push` is observable so row-navigation tests can assert where (and
+// whether) clickable rows navigate.
+const routerPush = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ replace: vi.fn() }),
+  useRouter: () => ({ replace: vi.fn(), push: routerPush }),
   usePathname: () => '/users',
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -150,6 +153,52 @@ describe('/users — last-admin lockout guard', () => {
     expect(error.textContent).toContain('last active admin');
     // The dialog stays open so the operator sees why nothing happened.
     expect(getByTestId('confirm-dialog')).toBeInTheDocument();
+  });
+});
+
+describe('/users — row navigation', () => {
+  useMockBackend();
+
+  beforeEach(() => {
+    routerPush.mockClear();
+  });
+
+  it('clicking anywhere in a user row (not just the email link) opens the detail page', async () => {
+    const { findByTestId, getByTestId } = wrap(<UsersPage />);
+    // The role badge is plain (non-interactive) cell content — exactly the
+    // area the bug report said did nothing on click.
+    await findByTestId('user-role-2');
+
+    fireEvent.click(getByTestId('user-role-2'));
+    expect(routerPush).toHaveBeenCalledTimes(1);
+    expect(routerPush).toHaveBeenCalledWith('/users/2');
+  });
+
+  it('user rows are keyboard-reachable: Tab focus + Enter navigates', async () => {
+    const { findByTestId, getAllByTestId } = wrap(<UsersPage />);
+    await findByTestId('user-role-2');
+
+    const row = getAllByTestId('data-table-row').find(
+      (r) => r.getAttribute('data-href') === '/users/2',
+    );
+    expect(row).toBeDefined();
+    expect(row?.getAttribute('tabindex')).toBe('0');
+    row?.focus();
+    fireEvent.keyDown(row as HTMLElement, { key: 'Enter' });
+    expect(routerPush).toHaveBeenCalledWith('/users/2');
+  });
+
+  it('the Deactivate action and its confirmation dialog never trigger navigation', async () => {
+    const { findByTestId, getByTestId, queryByTestId } = wrap(<UsersPage />);
+    await findByTestId('user-deactivate-2');
+
+    fireEvent.click(getByTestId('user-deactivate-2'));
+    await findByTestId('confirm-dialog');
+    expect(routerPush).not.toHaveBeenCalled();
+
+    fireEvent.click(getByTestId('confirm-dialog-cancel'));
+    await waitFor(() => expect(queryByTestId('confirm-dialog')).toBeNull());
+    expect(routerPush).not.toHaveBeenCalled();
   });
 });
 

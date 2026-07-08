@@ -64,6 +64,20 @@ describe('/nodes — list', () => {
     expect(getByTestId('node-source-3').textContent).toBe('config');
   });
 
+  it('rows are not clickable, so they carry no hover/click affordance', async () => {
+    // Nodes have no detail page. The rows must not pretend otherwise:
+    // no data-interactive marker (which drives the recipe's hover +
+    // pointer styling) and no tab stop.
+    const { findByTestId, getAllByTestId } = wrap(<NodesPage />);
+    await findByTestId('node-name-1');
+    const rows = getAllByTestId('data-table-row');
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.hasAttribute('data-interactive')).toBe(false);
+      expect(row.getAttribute('tabindex')).toBeNull();
+    }
+  });
+
   it('links each node to the usage page filtered by node_id', async () => {
     const { findByTestId, getByTestId } = wrap(<NodesPage />);
     await findByTestId('node-name-1');
