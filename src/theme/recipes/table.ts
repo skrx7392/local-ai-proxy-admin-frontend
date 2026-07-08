@@ -37,6 +37,10 @@ export const tableRecipe = defineSlotRecipe({
       color: 'fg.muted',
       textTransform: 'uppercase',
       letterSpacing: '0.04em',
+      // Header labels never wrap ("RATE LIMIT" must not become "RA LIM").
+      // Narrow viewports scroll the table horizontally instead (DataTable
+      // wraps every table in an overflow-x container).
+      whiteSpace: 'nowrap',
       borderBottomWidth: '1px',
       borderBottomStyle: 'solid',
       borderBottomColor: 'border.subtle',

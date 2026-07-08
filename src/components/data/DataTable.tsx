@@ -1,12 +1,7 @@
 'use client';
 
 import { Box, Table } from '@chakra-ui/react';
-import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-} from '@tanstack/react-table';
+import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
 import type { ReactNode } from 'react';
 
 import { DataTableSkeleton } from '@/components/loading';
@@ -42,12 +37,7 @@ export function DataTable<TData>({
   });
 
   if (isLoading) {
-    return (
-      <DataTableSkeleton
-        rows={5}
-        columns={Math.max(columns.length, 1)}
-      />
-    );
+    return <DataTableSkeleton rows={5} columns={Math.max(columns.length, 1)} />;
   }
 
   if (data.length === 0) {
@@ -71,41 +61,57 @@ export function DataTable<TData>({
   }
 
   return (
-    <Table.Root aria-label={ariaLabel} data-testid="data-table">
-      <Table.Header>
-        {table.getHeaderGroups().map((headerGroup) => (
-          <Table.Row key={headerGroup.id}>
-            {headerGroup.headers.map((header) => (
-              <Table.ColumnHeader
-                key={header.id}
-                style={
-                  header.column.columnDef.size !== undefined
-                    ? { width: `${header.column.columnDef.size}px` }
-                    : undefined
-                }
-              >
-                {header.isPlaceholder
-                  ? null
-                  : flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )}
-              </Table.ColumnHeader>
-            ))}
-          </Table.Row>
-        ))}
-      </Table.Header>
-      <Table.Body>
-        {table.getRowModel().rows.map((row) => (
-          <Table.Row key={row.id} data-testid="data-table-row">
-            {row.getVisibleCells().map((cell) => (
-              <Table.Cell key={cell.id}>
-                {flexRender(cell.column.columnDef.cell, cell.getContext())}
-              </Table.Cell>
-            ))}
-          </Table.Row>
-        ))}
-      </Table.Body>
-    </Table.Root>
+    // Every data table scrolls horizontally when its natural width exceeds
+    // the viewport (narrow windows / mobile), so trailing columns and row
+    // actions stay reachable instead of being clipped. The wrapper is a
+    // focusable region so keyboard users can scroll it (and axe's
+    // scrollable-region-focusable check passes).
+    <Box
+      overflowX="auto"
+      maxWidth="100%"
+      tabIndex={0}
+      role="region"
+      aria-label={ariaLabel ?? 'Data table'}
+      _focusVisible={{
+        outline: '2px solid',
+        outlineColor: 'border.focus',
+        outlineOffset: '2px',
+      }}
+      data-testid="data-table-scroll"
+    >
+      <Table.Root aria-label={ariaLabel} data-testid="data-table">
+        <Table.Header>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <Table.Row key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <Table.ColumnHeader
+                  key={header.id}
+                  style={
+                    header.column.columnDef.size !== undefined
+                      ? { width: `${header.column.columnDef.size}px` }
+                      : undefined
+                  }
+                >
+                  {header.isPlaceholder
+                    ? null
+                    : flexRender(header.column.columnDef.header, header.getContext())}
+                </Table.ColumnHeader>
+              ))}
+            </Table.Row>
+          ))}
+        </Table.Header>
+        <Table.Body>
+          {table.getRowModel().rows.map((row) => (
+            <Table.Row key={row.id} data-testid="data-table-row">
+              {row.getVisibleCells().map((cell) => (
+                <Table.Cell key={cell.id}>
+                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                </Table.Cell>
+              ))}
+            </Table.Row>
+          ))}
+        </Table.Body>
+      </Table.Root>
+    </Box>
   );
 }
