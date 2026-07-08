@@ -64,12 +64,14 @@ const accounts = [
   },
 ];
 
+// Rates are credits per 1M tokens since backend PR #54 renamed the
+// fields to per-MTok semantics.
 const pricing = [
   {
     id: 201,
     model_id: 'llama3.1:8b',
-    prompt_rate: 0.00005,
-    completion_rate: 0.00015,
+    prompt_rate_per_mtok: 50,
+    completion_rate_per_mtok: 150,
     typical_completion: 500,
     effective_from: '2025-10-01T00:00:00Z',
     active: true,

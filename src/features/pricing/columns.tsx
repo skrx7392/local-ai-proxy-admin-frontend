@@ -5,14 +5,12 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import type { Pricing } from './schemas';
 
-// Rates are dollars-per-token floats. Display as $/1M tokens so the
-// numbers are readable at a glance (a $0.00005/token rate becomes
-// $50/1M which is how pricing pages typically quote it).
-const perMillion = new Intl.NumberFormat('en-US', {
-  style: 'currency',
-  currency: 'USD',
+// Rates are credits per 1M tokens (per-MTok) since backend PR #54 — the
+// wire value is already the human-scale number, so display it as-is
+// (no unit conversion). Up to 6 decimals matches backend storage.
+const perMtok = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
-  maximumFractionDigits: 4,
+  maximumFractionDigits: 6,
 });
 
 export function buildPricingColumns(options: {
@@ -35,27 +33,27 @@ export function buildPricingColumns(options: {
       ),
     },
     {
-      accessorKey: 'prompt_rate',
+      accessorKey: 'prompt_rate_per_mtok',
       header: 'Prompt',
       cell: ({ row }) => (
         <VStack align="flex-start" gap="0">
-          <Text>{perMillion.format(row.original.prompt_rate * 1_000_000)}</Text>
+          <Text>{perMtok.format(row.original.prompt_rate_per_mtok)}</Text>
           <Text fontSize="xs" color="fg.muted">
-            / 1M tokens
+            credits / 1M tokens
           </Text>
         </VStack>
       ),
     },
     {
-      accessorKey: 'completion_rate',
+      accessorKey: 'completion_rate_per_mtok',
       header: 'Completion',
       cell: ({ row }) => (
         <VStack align="flex-start" gap="0">
           <Text>
-            {perMillion.format(row.original.completion_rate * 1_000_000)}
+            {perMtok.format(row.original.completion_rate_per_mtok)}
           </Text>
           <Text fontSize="xs" color="fg.muted">
-            / 1M tokens
+            credits / 1M tokens
           </Text>
         </VStack>
       ),

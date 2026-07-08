@@ -25,8 +25,8 @@ export interface PricingFormDialogProps {
 
 const EMPTY: PricingFormInput = {
   model_id: '',
-  prompt_rate: '',
-  completion_rate: '',
+  prompt_rate_per_mtok: '',
+  completion_rate_per_mtok: '',
   typical_completion: '',
 };
 
@@ -63,8 +63,8 @@ export function PricingFormDialog({
         editing
           ? {
               model_id: editing.model_id,
-              prompt_rate: String(editing.prompt_rate),
-              completion_rate: String(editing.completion_rate),
+              prompt_rate_per_mtok: String(editing.prompt_rate_per_mtok),
+              completion_rate_per_mtok: String(editing.completion_rate_per_mtok),
               typical_completion: String(editing.typical_completion),
             }
           : EMPTY,
@@ -89,8 +89,8 @@ export function PricingFormDialog({
                   {editing ? 'Edit pricing' : 'New pricing'}
                 </Dialog.Title>
                 <Dialog.Description>
-                  Rates are dollars per token. To quote ${'${n}'}/1M tokens,
-                  enter {'{'}n{'}'} / 1,000,000.
+                  Rates are credits per 1M tokens, stored to 6 decimal
+                  places.
                 </Dialog.Description>
               </Dialog.Header>
               <Dialog.Body>
@@ -107,22 +107,24 @@ export function PricingFormDialog({
                     data-testid="pricing-model-id"
                   />
                   <FormField
-                    name="prompt_rate"
-                    label="Prompt rate (USD/token)"
+                    name="prompt_rate_per_mtok"
+                    label="Prompt rate (credits / 1M tokens)"
                     register={register}
                     type="number"
-                    placeholder="0.00005"
-                    errorMessage={errors.prompt_rate?.message}
+                    step="0.000001"
+                    placeholder="5.00"
+                    errorMessage={errors.prompt_rate_per_mtok?.message}
                     required
                     data-testid="pricing-prompt-rate"
                   />
                   <FormField
-                    name="completion_rate"
-                    label="Completion rate (USD/token)"
+                    name="completion_rate_per_mtok"
+                    label="Completion rate (credits / 1M tokens)"
                     register={register}
                     type="number"
-                    placeholder="0.00015"
-                    errorMessage={errors.completion_rate?.message}
+                    step="0.000001"
+                    placeholder="15.00"
+                    errorMessage={errors.completion_rate_per_mtok?.message}
                     required
                     data-testid="pricing-completion-rate"
                   />

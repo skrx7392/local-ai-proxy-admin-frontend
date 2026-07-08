@@ -13,6 +13,7 @@ export interface FormFieldProps<TFieldValues extends FieldValues> {
   label: string;
   register: UseFormRegister<TFieldValues>;
   type?: InputHTMLAttributes<HTMLInputElement>['type'];
+  step?: InputHTMLAttributes<HTMLInputElement>['step'];
   placeholder?: string;
   helperText?: ReactNode;
   errorMessage?: string | undefined;
@@ -33,6 +34,7 @@ export function FormField<TFieldValues extends FieldValues>({
   label,
   register,
   type = 'text',
+  step,
   placeholder,
   helperText,
   errorMessage,
@@ -48,6 +50,7 @@ export function FormField<TFieldValues extends FieldValues>({
       <Field.Label>{label}</Field.Label>
       <Input
         type={type}
+        step={step}
         placeholder={placeholder}
         autoComplete={autoComplete}
         autoFocus={autoFocus}
