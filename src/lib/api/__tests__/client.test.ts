@@ -167,6 +167,124 @@ describe('apiFetch', () => {
     ).rejects.toMatchObject({ status: 500, code: 'boom' });
   });
 
+  it('throws ApiError when a 200 response carries a BFF shallow error envelope', async () => {
+    // Observed live 2026-07-08: HTTP 200 with body {"code":"csrf_check_failed"}.
+    // Returning that as "data" made downstream zod parses fail and left pages
+    // stuck — an error envelope must throw no matter the HTTP status.
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: 'csrf_check_failed' }), {
+        status: 200,
+      }),
+    );
+
+    await expect(apiFetch('/config')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 200,
+      code: 'csrf_check_failed',
+    });
+  });
+
+  it('throws ApiError when a 200 response carries a backend error envelope', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          error: { code: 'boom', message: 'kaput', type: 'api_error' },
+          request_id: 'r7',
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(apiFetch('/config')).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 200,
+      code: 'boom',
+      message: 'kaput',
+      requestId: 'r7',
+    });
+  });
+
+  it('does not misclassify success bodies that merely contain a code field', async () => {
+    const { apiFetch } = await freshClient();
+    // A body with `code` alongside real payload keys is data, not an error
+    // envelope — only the shallow {code, message?, request_id?} shape and the
+    // {error: {...}} shape are treated as errors.
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ code: 'promo-2026', data: [1, 2] }), {
+        status: 200,
+      }),
+    );
+
+    await expect(apiFetch('/whatever')).resolves.toEqual({
+      code: 'promo-2026',
+      data: [1, 2],
+    });
+  });
+
+  it('does not misclassify allowed-status bodies (degraded health)', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({ status: 'degraded', checks: {}, uptime_seconds: 1 }),
+        { status: 503 },
+      ),
+    );
+
+    const body = await apiFetch<{ status: string }>('/health', {
+      allowedStatuses: [503],
+    });
+    expect(body.status).toBe('degraded');
+  });
+
+  it('times out a hung request with ApiError(request_timeout)', async () => {
+    const { apiFetch } = await freshClient();
+    fetchMock.mockReturnValueOnce(new Promise(() => {}));
+
+    await expect(
+      apiFetch('/config', { timeoutMs: 25 }),
+    ).rejects.toMatchObject({
+      name: 'ApiError',
+      status: 408,
+      code: 'request_timeout',
+    });
+  });
+
+  it('applies the 10s default timeout to GET requests', async () => {
+    const { apiFetch } = await freshClient();
+    vi.useFakeTimers();
+    try {
+      fetchMock.mockReturnValueOnce(new Promise(() => {}));
+      const pending = apiFetch('/config');
+      const assertion = expect(pending).rejects.toMatchObject({
+        code: 'request_timeout',
+      });
+      await vi.advanceTimersByTimeAsync(10_000);
+      await assertion;
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('honors an external abort signal without mislabelling it a timeout', async () => {
+    const { apiFetch } = await freshClient();
+    const controller = new AbortController();
+    fetchMock.mockImplementationOnce(
+      (_url: string, init: RequestInit) =>
+        new Promise((_resolve, reject) => {
+          init.signal?.addEventListener('abort', () =>
+            reject(new DOMException('Aborted', 'AbortError')),
+          );
+        }),
+    );
+
+    const pending = apiFetch('/config', { signal: controller.signal });
+    controller.abort();
+
+    await expect(pending).rejects.toMatchObject({ name: 'AbortError' });
+  });
+
   it('only triggers a single signOut for a burst of concurrent 401s', async () => {
     const { apiFetch } = await freshClient();
     fetchMock.mockResolvedValue(

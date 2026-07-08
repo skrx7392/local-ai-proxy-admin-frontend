@@ -339,22 +339,35 @@ export const configSourcedNodeError = {
 };
 
 // BE 5 — `GET /api/admin/config`. Bare object (no envelope). Mirrors
-// internal/admin/config_health.go::ConfigSnapshot; must stay identical
-// to what `AdminConfigSchema` accepts on the FE.
+// internal/admin/config_health.go::ConfigSnapshot as the backend serves it
+// TODAY — including fields added after FE PR G (2026-07 security hardening:
+// auth_* rate limits, max_json_request_body_bytes, models_list_all,
+// nodes_file). The FE renders a whitelisted subset (CONFIG_GROUPS) and must
+// tolerate additive fields; keeping the fixture on the live wire shape is
+// what catches drift like the 2026-07-08 P0 (strict schema rejected the
+// grown snapshot and blanked /config).
 export const adminConfig = {
   ollama_url: 'http://ollama.local:11434',
   port: '8080',
   log_level: 'info',
   max_request_body_bytes: 52_428_800,
+  max_json_request_body_bytes: 1_048_576,
   default_credit_grant: 1.5,
   cors_origins: '*',
   admin_rate_limit_per_minute: 10,
+  auth_login_rate_limit_per_minute: 5,
+  auth_login_email_rate_limit_per_minute: 10,
+  auth_register_rate_limit_per_minute: 3,
+  auth_general_rate_limit_per_minute: 60,
+  auth_bcrypt_max_concurrent: 4,
   usage_channel_capacity: 1000,
   admin_session_duration_hours: 6,
   user_session_duration_hours: 168,
   version: 'abc1234',
   build_time: '2026-04-15T00:00:00Z',
   go_version: 'go1.26.0',
+  models_list_all: false,
+  nodes_file: '',
 } as const;
 
 // BE 5 — `GET /api/admin/health`. Bare object, 200 when all checks pass.
