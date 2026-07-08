@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ## [Unreleased]
 
 ### Added
+- Topbar "Go to…" box now shows a suggestions popover (ARIA combobox):
+  focus lists every destination, typing filters fuzzily
+  (`src/lib/nav/fuzzy.ts`), ArrowUp/ArrowDown + Enter or click navigates,
+  Escape dismisses (second Escape clears + blurs). The pre-popover contract
+  is unchanged: `/` focuses the box and exact-name + Enter still navigates
+  with the popover dismissed.
 - `EmptyState` primitive in `src/components/data/`. Content-only by default
   (unframed). Opt into a glass card via `framed`.
 - Route error boundaries: `(admin)/error.tsx`, `login/error.tsx`, and a
