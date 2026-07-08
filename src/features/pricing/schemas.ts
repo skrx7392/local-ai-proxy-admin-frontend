@@ -61,3 +61,50 @@ export const PricingFormSchema = z.object({
 
 export type PricingFormInput = z.input<typeof PricingFormSchema>;
 export type PricingFormValues = z.output<typeof PricingFormSchema>;
+
+// --- Outlier heuristic ----------------------------------------------------
+//
+// The form already rejects non-positive, over-ceiling, and over-precise rates,
+// but it silently accepts order-of-magnitude typos (e.g. entering a per-token
+// rate into a per-1M-token field, or fat-fingering 4000 for 40). Those aren't
+// *invalid*, just suspicious — so this is a non-blocking warn-then-confirm, not
+// a hard reject.
+//
+// A submitted rate is flagged as an outlier when EITHER of its two rates is:
+//   • more than 10x the largest rate among the existing active rows
+//     (an order-of-magnitude jump vs. what's already priced), OR
+//   • above an absolute ceiling — but only when there are no existing rows to
+//     compare against, so the very first row can't false-positive against an
+//     empty baseline while still catching an obviously-mistyped huge number.
+//
+// The absolute ceiling is intentionally high (typical local-model rates sit in
+// the tens-to-hundreds of credits / 1M tokens); it exists to catch mistypes on
+// a fresh catalog, not to police legitimate pricing.
+export const OUTLIER_RATE_MULTIPLIER = 10;
+export const OUTLIER_ABSOLUTE_THRESHOLD_PER_MTOK = 1_000;
+
+/**
+ * Decide whether a submitted per-MTok rate pair looks like an order-of-magnitude
+ * mistake relative to `existingRates` (the prompt+completion rates of all other
+ * active rows). Pass an empty array when there is nothing to compare against.
+ */
+export function isPricingRateOutlier(
+  submitted: {
+    prompt_rate_per_mtok: number;
+    completion_rate_per_mtok: number;
+  },
+  existingRates: number[],
+): boolean {
+  const submittedMax = Math.max(
+    submitted.prompt_rate_per_mtok,
+    submitted.completion_rate_per_mtok,
+  );
+
+  const positiveExisting = existingRates.filter((r) => r > 0);
+  if (positiveExisting.length === 0) {
+    return submittedMax > OUTLIER_ABSOLUTE_THRESHOLD_PER_MTOK;
+  }
+
+  const existingMax = Math.max(...positiveExisting);
+  return submittedMax > OUTLIER_RATE_MULTIPLIER * existingMax;
+}

@@ -4,9 +4,10 @@
 // care of all tests at once.
 
 // Shape matches internal/admin/admin.go::keyResponse — the list endpoint
-// does NOT return last_used_at / user_id / account_id, and the active
-// flag is inverted into `revoked`. A server-side filter of
-// ?is_active=true|false is still valid (backend maps to !revoked).
+// returns `last_used_at` (derived from usage_logs; null when the key has
+// never served a request) but NOT user_id / account_id, and the active flag
+// is inverted into `revoked`. A server-side filter of ?is_active=true|false
+// is still valid (backend maps to !revoked).
 export const keys = [
   {
     id: 101,
@@ -15,6 +16,7 @@ export const keys = [
     rate_limit: 60,
     created_at: '2026-01-12T10:00:00Z',
     revoked: false,
+    last_used_at: '2026-07-07T08:30:00Z',
   },
   {
     id: 102,
@@ -23,6 +25,7 @@ export const keys = [
     rate_limit: 120,
     created_at: '2026-02-01T14:22:00Z',
     revoked: false,
+    last_used_at: '2026-06-15T12:00:00Z',
   },
   {
     id: 103,
@@ -31,6 +34,7 @@ export const keys = [
     rate_limit: 60,
     created_at: '2025-11-20T09:00:00Z',
     revoked: true,
+    last_used_at: null,
   },
 ] as const;
 
@@ -176,6 +180,16 @@ export const usageByModel = [
     total_tokens: 645_054,
     credits: 27.69,
     avg_duration_ms: 442.1,
+  },
+  {
+    // Served traffic and accrued credits but has NO active pricing row — the
+    // Pricing page flags this as "serving without pricing". Effective observed
+    // rate = 21.73 / 869_200 * 1e6 = 25.0 credits / 1M tokens.
+    model: 'gemma4:e2b',
+    requests: 640,
+    total_tokens: 869_200,
+    credits: 21.73,
+    avg_duration_ms: 290.4,
   },
 ] as const;
 

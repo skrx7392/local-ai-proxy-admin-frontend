@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest';
 import { parseEnvelope } from '@/lib/api/envelope';
 import { pricing } from '@/test/msw/fixtures';
 
-import { PricingFormSchema, PricingSchema } from '../schemas';
+import {
+  OUTLIER_ABSOLUTE_THRESHOLD_PER_MTOK,
+  PricingFormSchema,
+  PricingSchema,
+  isPricingRateOutlier,
+} from '../schemas';
 
 describe('PricingSchema — per-MTok wire shape (backend PR #54)', () => {
   it('parses the list envelope with prompt_rate_per_mtok / completion_rate_per_mtok', () => {
@@ -101,5 +106,73 @@ describe('PricingFormSchema — per-MTok validation', () => {
       typical_completion: '',
     });
     expect(parsed.typical_completion).toBeUndefined();
+  });
+});
+
+describe('isPricingRateOutlier — order-of-magnitude guard', () => {
+  const existing = [50, 150, 500, 1500]; // matches the fixture catalog
+
+  it('flags a rate more than 10x the largest existing rate', () => {
+    expect(
+      isPricingRateOutlier(
+        { prompt_rate_per_mtok: 20_000, completion_rate_per_mtok: 20_000 },
+        existing,
+      ),
+    ).toBe(true);
+  });
+
+  it('flags when only one of the two rates is an outlier', () => {
+    expect(
+      isPricingRateOutlier(
+        { prompt_rate_per_mtok: 40, completion_rate_per_mtok: 90_000 },
+        existing,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not flag a rate within an order of magnitude of the max', () => {
+    expect(
+      isPricingRateOutlier(
+        { prompt_rate_per_mtok: 4_000, completion_rate_per_mtok: 4_000 },
+        existing,
+      ),
+    ).toBe(false);
+  });
+
+  it('uses the absolute ceiling when there are no existing rows', () => {
+    expect(
+      isPricingRateOutlier(
+        {
+          prompt_rate_per_mtok: OUTLIER_ABSOLUTE_THRESHOLD_PER_MTOK + 1,
+          completion_rate_per_mtok: 1,
+        },
+        [],
+      ),
+    ).toBe(true);
+    expect(
+      isPricingRateOutlier(
+        {
+          prompt_rate_per_mtok: OUTLIER_ABSOLUTE_THRESHOLD_PER_MTOK,
+          completion_rate_per_mtok: 1,
+        },
+        [],
+      ),
+    ).toBe(false);
+  });
+
+  it('ignores non-positive existing rates when computing the baseline', () => {
+    // A catalog of only zero-rate rows behaves like an empty baseline.
+    expect(
+      isPricingRateOutlier(
+        { prompt_rate_per_mtok: 500, completion_rate_per_mtok: 500 },
+        [0, 0],
+      ),
+    ).toBe(false);
+    expect(
+      isPricingRateOutlier(
+        { prompt_rate_per_mtok: 2_000, completion_rate_per_mtok: 500 },
+        [0, 0],
+      ),
+    ).toBe(true);
   });
 });
