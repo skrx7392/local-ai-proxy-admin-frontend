@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  Alert,
   Box,
   Container,
   Heading,
@@ -10,6 +9,7 @@ import {
   Text,
 } from '@chakra-ui/react';
 
+import { QueryErrorState } from '@/components/data';
 import { TextBlockSkeleton } from '@/components/loading';
 import { CONFIG_GROUPS } from '@/features/config/groups';
 import { useAdminConfig } from '@/features/config/hooks';
@@ -19,13 +19,16 @@ function formatValue(
   value: AdminConfig[keyof AdminConfig] | undefined,
   render?: (v: AdminConfig[keyof AdminConfig]) => string,
 ): string {
-  if (value === undefined || value === null) return '—';
+  // '' covers unset-string snapshot values (ollama_url / nodes_file are
+  // empty when the env var is absent); undefined covers fields an older
+  // backend doesn't serve yet.
+  if (value === undefined || value === null || value === '') return '—';
   if (render) return render(value);
   return String(value);
 }
 
 export default function ConfigPage() {
-  const { data, status, error } = useAdminConfig();
+  const { data, status, error, refetch } = useAdminConfig();
 
   return (
     <Container maxW="6xl" paddingBlock="8" data-testid="config-page">
@@ -56,15 +59,12 @@ export default function ConfigPage() {
         )}
 
         {status === 'error' && (
-          <Alert.Root status="error" data-testid="config-error">
-            <Alert.Indicator />
-            <Alert.Content>
-              <Alert.Title>Failed to load configuration</Alert.Title>
-              <Alert.Description>
-                {error instanceof Error ? error.message : 'Unknown error'}
-              </Alert.Description>
-            </Alert.Content>
-          </Alert.Root>
+          <QueryErrorState
+            title="Failed to load configuration"
+            error={error}
+            onRetry={() => void refetch()}
+            data-testid="config-error"
+          />
         )}
 
         {status === 'success' && data && (
