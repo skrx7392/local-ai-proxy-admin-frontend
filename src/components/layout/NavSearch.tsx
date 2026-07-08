@@ -131,6 +131,11 @@ export function NavSearch() {
           setActiveIndex(0);
         }}
         onFocus={openPopover}
+        // Clicking the box reopens the popover even when it already holds
+        // focus — e.g. after a first-Escape dismissal, or after a client
+        // navigation that keeps this persistent input focused (no fresh
+        // focus event fires in either case).
+        onClick={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
         data-hotkey-target="nav-search"

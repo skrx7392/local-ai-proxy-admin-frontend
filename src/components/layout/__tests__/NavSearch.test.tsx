@@ -145,6 +145,21 @@ describe('<NavSearch /> suggestions popover', () => {
     expect(document.activeElement).not.toBe(input);
   });
 
+  it('reopens on click when the box is already focused (post-Escape / post-navigation)', () => {
+    wrap(<NavSearch />);
+    const input = getInput();
+    input.focus();
+    fireEvent.focus(input);
+    // Stage-1 Escape dismisses but keeps focus.
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(document.activeElement).toBe(input);
+
+    // A click (no fresh focus event, since focus never left) reopens.
+    fireEvent.click(input);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
   it('typing reopens the popover after it was dismissed', () => {
     wrap(<NavSearch />);
     const input = getInput();
