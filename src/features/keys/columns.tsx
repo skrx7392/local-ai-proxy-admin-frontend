@@ -4,6 +4,8 @@ import { Badge, Button, HStack, Link as ChakraLink, Text } from '@chakra-ui/reac
 import type { ColumnDef } from '@tanstack/react-table';
 import NextLink from 'next/link';
 
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
+
 import type { Key } from './schemas';
 
 export function buildKeyColumns(options: {
@@ -63,6 +65,36 @@ export function buildKeyColumns(options: {
           {new Date(row.original.created_at).toLocaleDateString()}
         </Text>
       ),
+    },
+    {
+      accessorKey: 'last_used_at',
+      header: 'Last used',
+      cell: ({ row }) => {
+        const iso = row.original.last_used_at;
+        if (!iso) {
+          return (
+            <Text
+              fontSize="xs"
+              color="fg.subtle"
+              data-testid={`key-last-used-${row.original.id}`}
+            >
+              Never
+            </Text>
+          );
+        }
+        // Relative by default; absolute (UTC) revealed via the native title
+        // tooltip on hover — same dependency-free pattern as the Nodes table.
+        return (
+          <Text
+            fontSize="xs"
+            color="fg.muted"
+            title={formatAbsoluteTime(iso)}
+            data-testid={`key-last-used-${row.original.id}`}
+          >
+            {formatRelativeTime(iso)}
+          </Text>
+        );
+      },
     },
     {
       id: 'actions',

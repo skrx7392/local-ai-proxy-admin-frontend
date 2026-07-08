@@ -21,6 +21,12 @@ export interface PricingFormDialogProps {
   onSubmit: (values: PricingFormValues) => void;
   isSubmitting?: boolean;
   submissionError?: string | undefined;
+  /**
+   * Prefill the (editable) model_id when creating a new row — used by the
+   * "Add pricing" action next to a model that is serving traffic without a
+   * pricing row. Ignored when `editing` is set.
+   */
+  prefillModelId?: string | undefined;
 }
 
 const EMPTY: PricingFormInput = {
@@ -42,6 +48,7 @@ export function PricingFormDialog({
   onSubmit,
   isSubmitting = false,
   submissionError,
+  prefillModelId,
 }: PricingFormDialogProps) {
   const {
     register,
@@ -67,7 +74,7 @@ export function PricingFormDialog({
               completion_rate_per_mtok: String(editing.completion_rate_per_mtok),
               typical_completion: String(editing.typical_completion),
             }
-          : EMPTY,
+          : { ...EMPTY, model_id: prefillModelId ?? '' },
       );
     }
   }

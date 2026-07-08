@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { server } from '@/test/msw/server';
 import { useMockBackend } from '@/test/msw/useMockBackend';
 import { system } from '@/theme';
+import { formatAbsoluteTime } from '@/lib/utils/datetime';
 
 import KeysPage from '../keys/page';
 
@@ -77,5 +78,31 @@ describe('/keys — revoke confirmation', () => {
 
     await waitFor(() => expect(queryByTestId('confirm-dialog')).toBeNull());
     expect(deleted).toHaveLength(0);
+  });
+});
+
+describe('/keys — last used column', () => {
+  useMockBackend();
+
+  it('renders relative time with the absolute value on hover', async () => {
+    const { findByTestId } = wrap(<KeysPage />);
+
+    // Key 101 has usage: relative text plus the absolute UTC value as a title.
+    const used = await findByTestId('key-last-used-101');
+    expect(used.textContent).not.toBe('Never');
+    expect(used.textContent).toMatch(/ago|now/);
+    expect(used).toHaveAttribute(
+      'title',
+      formatAbsoluteTime('2026-07-07T08:30:00Z'),
+    );
+  });
+
+  it('renders "Never" (with no tooltip) for a key that was never used', async () => {
+    const { findByTestId } = wrap(<KeysPage />);
+
+    // Key 103 (revoked, no usage) → last_used_at is null.
+    const never = await findByTestId('key-last-used-103');
+    expect(never.textContent).toBe('Never');
+    expect(never).not.toHaveAttribute('title');
   });
 });

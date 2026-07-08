@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 // Matches internal/admin/admin.go::keyResponse (list item). The field
 // `revoked` is an inverse of "active" — backend accepts ?is_active=true|false
-// as a filter parameter and maps it internally.
+// as a filter parameter and maps it internally. `last_used_at` is derived
+// server-side from usage_logs (MAX(created_at) per key) and is null for a key
+// that has never served a request.
 export const KeySchema = z.object({
   id: z.number().int(),
   name: z.string(),
@@ -10,6 +12,7 @@ export const KeySchema = z.object({
   rate_limit: z.number().int().nonnegative(),
   created_at: z.string(),
   revoked: z.boolean(),
+  last_used_at: z.string().nullable(),
 });
 
 export type Key = z.infer<typeof KeySchema>;

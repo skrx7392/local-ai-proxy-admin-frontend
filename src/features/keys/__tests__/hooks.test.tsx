@@ -40,6 +40,7 @@ const baseKeyDetail: KeyDetail = {
   rate_limit: 60,
   revoked: false,
   created_at: '2026-01-01T00:00:00Z',
+  last_used_at: null,
   user_id: null,
   account_id: null,
   session_token_limit: null,
