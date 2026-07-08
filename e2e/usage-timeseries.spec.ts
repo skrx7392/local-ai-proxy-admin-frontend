@@ -71,13 +71,25 @@ test.describe('usage timeseries tab', () => {
       expect(await segmentCount(line)).toBe(dashboardSegments);
     }
 
-    // Axis ticks are formatted labels, never raw ISO bucket keys.
-    const tickTexts = await chart
-      .locator('.recharts-xAxis .recharts-cartesian-axis-tick-value')
-      .allInnerTexts();
-    expect(tickTexts.length).toBeGreaterThan(0);
-    expect(tickTexts.some((t) => /\d{4}-\d{2}-\d{2}T/.test(t))).toBe(false);
-    expect(tickTexts.some((t) => /\d{1,2}:\d{2}/.test(t))).toBe(true);
+    // Axis ticks are formatted labels, never raw ISO bucket keys. Recharts
+    // renders tick text in a second pass (after measuring labels), so poll;
+    // read textContent via evaluateAll because innerText is not defined for
+    // SVG <text> elements.
+    const readSvgTexts = () =>
+      chart
+        .locator('svg.recharts-surface text')
+        .evaluateAll((els) =>
+          els.map((el) => el.textContent ?? '').filter(Boolean),
+        );
+    await expect
+      .poll(
+        async () =>
+          (await readSvgTexts()).filter((t) => /\d{1,2}:\d{2}/.test(t)).length,
+        { timeout: 10_000 },
+      )
+      .toBeGreaterThan(0);
+    const svgTexts = await readSvgTexts();
+    expect(svgTexts.some((t) => /\d{4}-\d{2}-\d{2}T/.test(t))).toBe(false);
   });
 
   test('renders on direct URL entry to /usage?tab=timeseries', async ({
