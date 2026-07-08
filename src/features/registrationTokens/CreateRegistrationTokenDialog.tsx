@@ -1,12 +1,29 @@
 'use client';
 
-import { Button, Dialog, Portal, Stack, Text } from '@chakra-ui/react';
+import {
+  Button,
+  Dialog,
+  Field,
+  HStack,
+  Input,
+  Portal,
+  Stack,
+  Text,
+} from '@chakra-ui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { format } from 'date-fns';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { FormField, FormMoney } from '@/components/forms';
 
+import {
+  EXPIRY_PRESETS,
+  EXPIRY_PRESET_LABELS,
+  dateToLocalInput,
+  resolveExpiryIso,
+  type ExpiryPreset,
+} from './expiry';
 import {
   RegistrationTokenFormSchema,
   type RegistrationTokenFormInput,
@@ -25,7 +42,8 @@ const EMPTY: RegistrationTokenFormInput = {
   name: '',
   credit_grant: '',
   max_uses: '',
-  expires_at: '',
+  expiry_preset: 'never',
+  expiry_custom: '',
 };
 
 export function CreateRegistrationTokenDialog({
@@ -40,6 +58,8 @@ export function CreateRegistrationTokenDialog({
     register,
     handleSubmit,
     reset,
+    setValue,
+    clearErrors,
     formState: { errors },
   } = useForm<
     RegistrationTokenFormInput,
@@ -58,6 +78,29 @@ export function CreateRegistrationTokenDialog({
   }
 
   const submit = handleSubmit((values) => onSubmit(values));
+
+  const expiryPreset = useWatch({ control, name: 'expiry_preset' });
+  const expiryCustom = useWatch({ control, name: 'expiry_custom' }) ?? '';
+
+  function selectExpiryPreset(preset: ExpiryPreset): void {
+    setValue('expiry_preset', preset, { shouldDirty: true });
+    // A stale "custom" validation error must not linger once the user
+    // switches to a preset that can't be invalid.
+    if (preset !== 'custom') clearErrors('expiry_custom');
+  }
+
+  // Preview of the resolved expiry, shown in local time before submit.
+  // Recomputed per render; the authoritative value is resolved by the
+  // schema at submit time.
+  const resolvedExpiry = resolveExpiryIso(expiryPreset, expiryCustom);
+  const expiryPreview =
+    expiryPreset === 'never'
+      ? 'This token never expires.'
+      : resolvedExpiry !== undefined
+        ? `Expires ${format(new Date(resolvedExpiry), 'MMM d, yyyy, h:mm a')} local`
+        : 'Pick a date and time to see the expiry.';
+
+  const expiryInvalid = Boolean(errors.expiry_custom);
 
   return (
     <Dialog.Root
@@ -108,15 +151,45 @@ export function CreateRegistrationTokenDialog({
                     errorMessage={errors.max_uses?.message}
                     data-testid="regtoken-max-uses"
                   />
-                  <FormField
-                    name="expires_at"
-                    label="Expires at (ISO 8601)"
-                    register={register}
-                    placeholder="2026-12-31T23:59:59Z"
-                    helperText="Leave blank for no expiry."
-                    errorMessage={errors.expires_at?.message}
-                    data-testid="regtoken-expires-at"
-                  />
+                  <Field.Root invalid={expiryInvalid}>
+                    <Field.Label>Expires</Field.Label>
+                    <HStack
+                      gap="2"
+                      wrap="wrap"
+                      data-testid="regtoken-expiry-presets"
+                    >
+                      {EXPIRY_PRESETS.map((preset) => (
+                        <Button
+                          key={preset}
+                          type="button"
+                          size="sm"
+                          variant={expiryPreset === preset ? 'solid' : 'outline'}
+                          onClick={() => selectExpiryPreset(preset)}
+                          data-testid={`regtoken-expiry-${preset}`}
+                        >
+                          {EXPIRY_PRESET_LABELS[preset]}
+                        </Button>
+                      ))}
+                    </HStack>
+                    {expiryPreset === 'custom' && (
+                      <Input
+                        type="datetime-local"
+                        min={dateToLocalInput(new Date())}
+                        data-testid="regtoken-expiry-custom-input"
+                        {...register('expiry_custom')}
+                      />
+                    )}
+                    {!expiryInvalid && (
+                      <Field.HelperText data-testid="regtoken-expiry-preview">
+                        {expiryPreview}
+                      </Field.HelperText>
+                    )}
+                    {expiryInvalid && (
+                      <Field.ErrorText data-testid="regtoken-expiry-error">
+                        {errors.expiry_custom?.message}
+                      </Field.ErrorText>
+                    )}
+                  </Field.Root>
                   {submissionError && (
                     <Text
                       role="alert"

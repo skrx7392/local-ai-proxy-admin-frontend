@@ -252,6 +252,38 @@ describe('TimeseriesChart via ChartFrame', () => {
       expect(path?.getAttribute('stroke-dasharray')).toBeNull();
     });
   });
+
+  it('joins on the unique ISO bucket key: a 25-bucket window with duplicate wall-clock labels keeps every point', async () => {
+    // Gap-filled 24h windows return 25 hourly buckets — the first and last
+    // share a wall-clock label. The axis must join on the raw bucket key and
+    // only FORMAT labels for display.
+    const start = Date.UTC(2026, 6, 7, 18, 0, 0);
+    const dayWrap: TimeseriesBucket[] = Array.from({ length: 25 }, (_, i) => ({
+      bucket: new Date(start + i * 3_600_000).toISOString(),
+      requests: 10 + i,
+      prompt_tokens: 0,
+      completion_tokens: 0,
+      total_tokens: 0,
+      credits: 0,
+      errors: 0,
+    }));
+
+    const { getByTestId } = wrap(
+      <TimeseriesChart buckets={dayWrap} interval="hour" series={['requests']} />,
+    );
+    reportSize(1000, 280);
+
+    await waitFor(() => {
+      const figure = getByTestId('timeseries-chart');
+      const path = figure.querySelector('path.recharts-line-curve');
+      expect(path).not.toBeNull();
+      const d = path?.getAttribute('d') ?? '';
+      // All 25 points survive: 24 line segments. (Tick LABEL formatting is
+      // covered by the timeseriesChartData unit tests and the Playwright
+      // spec — jsdom culls axis ticks because it cannot measure text.)
+      expect((d.match(/[LC]/g) ?? []).length).toBeGreaterThanOrEqual(24);
+    });
+  });
 });
 
 describe('ModelBreakdownChart via ChartFrame', () => {
