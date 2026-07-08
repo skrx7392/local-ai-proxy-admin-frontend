@@ -422,6 +422,26 @@ const server = createServer(async (req, res) => {
     if (isActive === 'false') list = list.filter((u) => !u.is_active);
     return json(res, 200, envelope(list, url));
   }
+  {
+    // Detail response mirrors GET /users/:id in internal/admin: the list
+    // shape plus account_id + updated_at, wrapped in a bare data envelope.
+    const match = /^\/users\/(\d+)$/.exec(adminPath);
+    if (match && method === 'GET') {
+      const user = users.find((u) => u.id === Number(match[1]));
+      if (!user) {
+        return json(res, 404, {
+          error: {
+            code: 'not_found',
+            type: 'invalid_request_error',
+            message: 'user not found',
+          },
+        });
+      }
+      return json(res, 200, {
+        data: { ...user, account_id: null, updated_at: user.created_at },
+      });
+    }
+  }
   if (/^\/users\/\d+\/activate$/.test(adminPath) && method === 'PUT') {
     return json(res, 200, { status: 'activated' });
   }

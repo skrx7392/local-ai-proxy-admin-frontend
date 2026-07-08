@@ -49,8 +49,24 @@ export const tableRecipe = defineSlotRecipe({
       transitionProperty: 'background-color',
       transitionDuration: 'sm',
       transitionTimingFunction: 'standard',
-      _hover: {
-        background: 'bg.glass.subtle',
+      // The hover/pointer affordance is earned, not default: only rows that
+      // actually navigate somewhere light up. DataTable stamps
+      // data-interactive on rows given a `rowHref`; static tables (nodes,
+      // accounts, …) stay inert so hover never promises a click that does
+      // nothing.
+      '&[data-interactive]': {
+        cursor: 'pointer',
+        _hover: {
+          background: 'bg.glass.subtle',
+        },
+        // Interactive rows are tab stops (tabIndex=0) — keyboard users need
+        // a visible indicator. Inset outline so it isn't clipped by the
+        // root's overflow:hidden on first/last rows.
+        _focusVisible: {
+          outline: '2px solid',
+          outlineColor: 'border.focus',
+          outlineOffset: '-2px',
+        },
       },
     },
     cell: {

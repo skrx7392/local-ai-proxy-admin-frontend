@@ -69,7 +69,16 @@ export function buildKeyColumns(options: {
       header: '',
       size: 120,
       cell: ({ row }) => (
-        <HStack justify="flex-end">
+        // The action zone is not part of the row's click target: clicks
+        // (and Enter on a focused action) must never bubble up into the
+        // row-level navigation DataTable attaches via `rowHref`.
+        <HStack
+          justify="flex-end"
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.stopPropagation();
+          }}
+        >
           {!row.original.revoked && (
             <Button
               size="xs"

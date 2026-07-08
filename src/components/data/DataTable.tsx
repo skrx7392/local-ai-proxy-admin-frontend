@@ -1,8 +1,15 @@
 'use client';
 
 import { Box, Table } from '@chakra-ui/react';
-import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table';
-import type { ReactNode } from 'react';
+import {
+  flexRender,
+  getCoreRowModel,
+  useReactTable,
+  type ColumnDef,
+  type Row,
+} from '@tanstack/react-table';
+import { useRouter } from 'next/navigation';
+import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
 import { DataTableSkeleton } from '@/components/loading';
 import { EmptyState } from './EmptyState';
@@ -15,6 +22,16 @@ export interface DataTableProps<TData> {
   /** Stable id getter — required for React key stability across re-fetches. */
   getRowId: (row: TData) => string;
   'aria-label'?: string;
+  /**
+   * When provided, every row navigates to this href on click / Enter and
+   * gets the pointer + hover affordance (the table recipe styles
+   * `[data-interactive]` rows only). Omit it for tables without a detail
+   * page so their rows don't look clickable.
+   *
+   * Clicks on interactive elements inside a row (links, buttons, inputs)
+   * and clicks that end a text selection never trigger navigation.
+   */
+  rowHref?: (row: TData) => string;
 }
 
 export function DataTable<TData>({
@@ -24,6 +41,7 @@ export function DataTable<TData>({
   emptyState,
   getRowId,
   'aria-label': ariaLabel,
+  rowHref,
 }: DataTableProps<TData>) {
   // @tanstack/react-table is the documented API for headless tables; the
   // React-Compiler "incompatible library" lint is a false positive here
@@ -101,17 +119,86 @@ export function DataTable<TData>({
           ))}
         </Table.Header>
         <Table.Body>
-          {table.getRowModel().rows.map((row) => (
-            <Table.Row key={row.id} data-testid="data-table-row">
-              {row.getVisibleCells().map((cell) => (
-                <Table.Cell key={cell.id}>
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </Table.Cell>
-              ))}
-            </Table.Row>
-          ))}
+          {table.getRowModel().rows.map((row) =>
+            rowHref ? (
+              <ClickableRow key={row.id} href={rowHref(row.original)}>
+                {renderCells(row)}
+              </ClickableRow>
+            ) : (
+              <Table.Row key={row.id} data-testid="data-table-row">
+                {renderCells(row)}
+              </Table.Row>
+            ),
+          )}
         </Table.Body>
       </Table.Root>
     </Box>
+  );
+}
+
+function renderCells<TData>(row: Row<TData>): ReactNode {
+  return row.getVisibleCells().map((cell) => (
+    <Table.Cell key={cell.id}>
+      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+    </Table.Cell>
+  ));
+}
+
+// Elements that own their own click/keyboard behavior — activating one of
+// these inside a clickable row must never also navigate the row.
+const INTERACTIVE_SELECTOR =
+  'a, button, input, select, textarea, label, [role="button"], [role="menuitem"], [role="checkbox"]';
+
+/**
+ * A table row that navigates on click / Enter. Split into its own component
+ * so `useRouter` is only mounted when a table opts into navigation — tables
+ * without `rowHref` never touch the app router (which also keeps them
+ * renderable in environments without a router context).
+ */
+function ClickableRow({ href, children }: { href: string; children: ReactNode }) {
+  const router = useRouter();
+
+  function handleClick(event: MouseEvent<HTMLTableRowElement>): void {
+    if (event.defaultPrevented) return;
+    // Inner links/buttons (e.g. the row's Deactivate action) keep their own
+    // behavior.
+    if (
+      event.target instanceof Element &&
+      event.target.closest(INTERACTIVE_SELECTOR) !== null
+    ) {
+      return;
+    }
+    // Selecting text fires a click on mouseup — don't yank the user away.
+    const selection = window.getSelection();
+    if (selection && !selection.isCollapsed) return;
+    // Honor open-in-new-tab intent (cmd/ctrl-click), like a real link would.
+    if (event.metaKey || event.ctrlKey) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    router.push(href);
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLTableRowElement>): void {
+    if (event.key !== 'Enter') return;
+    // Only when the row itself is focused — Enter on an inner control (a
+    // focused action button) must keep its own meaning.
+    if (event.target !== event.currentTarget) return;
+    event.preventDefault();
+    router.push(href);
+  }
+
+  return (
+    <Table.Row
+      data-testid="data-table-row"
+      // Drives the recipe's hover + cursor + focus-ring styling.
+      data-interactive=""
+      data-href={href}
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+    >
+      {children}
+    </Table.Row>
   );
 }

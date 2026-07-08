@@ -167,6 +167,7 @@ export default function UsersPage() {
           columns={columns}
           isLoading={listQuery.isLoading}
           getRowId={(row) => String(row.id)}
+          rowHref={(row) => `/users/${row.id}`}
           aria-label="Users"
           emptyState={
             filtersActive ? (

@@ -126,6 +126,7 @@ export default function KeysPage() {
           columns={columns}
           isLoading={listQuery.isLoading}
           getRowId={(row) => String(row.id)}
+          rowHref={(row) => `/keys/${row.id}`}
           aria-label="API keys"
           emptyState={
             activeFilter === 'all' ? (
