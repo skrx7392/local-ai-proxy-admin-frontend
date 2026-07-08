@@ -1,19 +1,18 @@
 'use client';
 
-import { Box } from '@chakra-ui/react';
 import { useMemo } from 'react';
 import {
   Bar,
   BarChart,
   CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
 
-import { usePrefersReducedMotion } from '@/hooks/ui/usePrefersReducedMotion';
 import { qualitativeAt, rechartsTheme } from '@/theme';
+
+import { CHART_ENTER_ANIMATION, ChartFrame } from './ChartFrame';
 
 import type { ModelUsage } from '@/features/usage/schemas';
 
@@ -41,8 +40,6 @@ export function ModelBreakdownChart({
   height = 280,
   minHeight = 240,
 }: ModelBreakdownChartProps) {
-  const reduced = usePrefersReducedMotion();
-
   // Copy before sorting — `data` comes from react-query and mutating the
   // cached array would silently desync later readers that expect server order.
   const rows = useMemo(
@@ -52,16 +49,16 @@ export function ModelBreakdownChart({
   );
 
   return (
-    <Box
-      width="100%"
-      height={`${height}px`}
-      minHeight={`${minHeight}px`}
-      role="figure"
-      aria-label={`${METRIC_LABEL[metric]} by model`}
-      data-testid="model-breakdown-chart"
+    <ChartFrame
+      height={height}
+      minHeight={minHeight}
+      ariaLabel={`${METRIC_LABEL[metric]} by model`}
+      testId="model-breakdown-chart"
     >
-      <ResponsiveContainer width="100%" height="100%">
+      {({ width, height: chartHeight }) => (
         <BarChart
+          width={width}
+          height={chartHeight}
           data={rows}
           margin={{ top: 8, right: 16, left: 0, bottom: 0 }}
         >
@@ -94,10 +91,10 @@ export function ModelBreakdownChart({
             name={METRIC_LABEL[metric]}
             fill={qualitativeAt(0)}
             radius={[4, 4, 0, 0]}
-            isAnimationActive={!reduced}
+            isAnimationActive={CHART_ENTER_ANIMATION}
           />
         </BarChart>
-      </ResponsiveContainer>
-    </Box>
+      )}
+    </ChartFrame>
   );
 }

@@ -1,3 +1,5 @@
+export { CHART_ENTER_ANIMATION, ChartFrame } from './ChartFrame';
+export type { ChartFrameProps, ChartSize } from './ChartFrame';
 export { TimeseriesChart } from './TimeseriesChart';
 export type { TimeseriesChartProps, TimeseriesSeriesKey } from './TimeseriesChart';
 export { StatCard } from './StatCard';
