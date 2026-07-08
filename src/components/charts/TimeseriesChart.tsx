@@ -11,6 +11,11 @@ import {
   YAxis,
 } from 'recharts';
 
+import {
+  buildTimeseriesChartData,
+  formatBucketTick,
+  formatBucketTooltipLabel,
+} from '@/features/usage/timeseriesChartData';
 import { qualitativeAt, rechartsTheme } from '@/theme';
 
 import { CHART_ENTER_ANIMATION, ChartFrame } from './ChartFrame';
@@ -45,21 +50,6 @@ const SERIES_LABEL: Record<TimeseriesSeriesKey, string> = {
   errors: 'Errors',
 };
 
-function formatBucket(iso: string, interval: TimeseriesInterval): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  if (interval === 'day') {
-    return d.toLocaleDateString(undefined, {
-      month: 'short',
-      day: '2-digit',
-    });
-  }
-  return d.toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 export function TimeseriesChart({
   buckets,
   interval,
@@ -68,16 +58,10 @@ export function TimeseriesChart({
   minHeight = 240,
   ariaLabel = 'Usage over time',
 }: TimeseriesChartProps) {
-  // Recharts mutates the `data` array internally for some interactions; pass
-  // a fresh copy so react-query's immutable cache is never mutated in place.
-  const data = useMemo(
-    () =>
-      buckets.map((b) => ({
-        ...b,
-        bucketLabel: formatBucket(b.bucket, interval),
-      })),
-    [buckets, interval],
-  );
+  // Fresh, sorted copy keyed on the unique ISO bucket (recharts mutates its
+  // `data` internally, and the input belongs to react-query's cache). Labels
+  // are formatting-only concerns applied at the axis/tooltip boundary.
+  const data = useMemo(() => buildTimeseriesChartData(buckets), [buckets]);
 
   return (
     <ChartFrame
@@ -99,7 +83,8 @@ export function TimeseriesChart({
             vertical={false}
           />
           <XAxis
-            dataKey="bucketLabel"
+            dataKey="bucket"
+            tickFormatter={(value: string) => formatBucketTick(value, interval)}
             stroke={rechartsTheme.axis.stroke}
             tick={rechartsTheme.axis.tick}
             tickLine={false}
@@ -116,6 +101,9 @@ export function TimeseriesChart({
             contentStyle={rechartsTheme.tooltip.contentStyle}
             labelStyle={rechartsTheme.tooltip.labelStyle}
             cursor={{ stroke: rechartsTheme.grid.stroke }}
+            labelFormatter={(value) =>
+              formatBucketTooltipLabel(String(value), interval)
+            }
           />
           {series.length > 1 && <Legend />}
           {series.map((key, i) => (
