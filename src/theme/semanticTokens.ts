@@ -62,6 +62,18 @@ export const semanticTokens = defineSemanticTokens({
       glass: {
         value: { _dark: 'rgba(255,255,255,0.18)', _light: 'rgba(15,23,42,0.08)' },
       },
+      // Form-control border. `border.glass` (used for cards) is intentionally
+      // faint, but on inputs it fell below the WCAG 1.4.11 non-text contrast
+      // floor (3:1) against the frosted-glass card — a nearly invisible field
+      // outline. `border.input` is tuned so an unfocused input reads ≥ 3:1
+      // against the card background at its on-screen position (the centered
+      // login card sits at the canvas gradient's 50% midpoint):
+      //   light  slate/0.55  → 3.94:1 vs card, 3.98:1 vs input interior
+      //   dark   white/0.65  → 3.75:1 vs card, 3.14:1 vs input interior
+      // (Compositing math is asserted in semanticTokens.test.tsx.)
+      input: {
+        value: { _dark: 'rgba(255,255,255,0.65)', _light: 'rgba(15,23,42,0.55)' },
+      },
       subtle: {
         value: { _dark: 'rgba(255,255,255,0.10)', _light: 'rgba(15,23,42,0.05)' },
       },
