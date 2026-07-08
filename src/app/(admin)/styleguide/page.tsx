@@ -1318,7 +1318,13 @@ function CopyVoiceSection() {
 
       <Stack gap="2">
         <Text textStyle="heading.sm">Boolean as ✓ / —</Text>
-        <Box overflowX="auto" maxWidth="100%">
+        <Box
+          overflowX="auto"
+          maxWidth="100%"
+          tabIndex={0}
+          role="region"
+          aria-label="Feature flags demo table"
+        >
           <Table.Root>
             <Table.Header>
               <Table.Row>
