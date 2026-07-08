@@ -19,6 +19,7 @@ export type KeysFilters = Pagination & { is_active?: boolean };
 export type UsersFilters = Pagination & { role?: string; is_active?: boolean };
 export type AccountsFilters = Pagination & { type?: string; is_active?: boolean };
 export type PricingFilters = Pagination;
+export type NodesFilters = Pagination;
 export type RegistrationTokensFilters = Pagination & { is_active?: boolean };
 export type RegistrationsFilters = Pagination;
 
@@ -49,6 +50,11 @@ export const qk = {
   pricing: {
     all: ['pricing'] as const,
     list: (filters: PricingFilters) => ['pricing', 'list', filters] as const,
+  },
+  nodes: {
+    all: ['nodes'] as const,
+    list: (filters: NodesFilters) => ['nodes', 'list', filters] as const,
+    detail: (id: number) => ['nodes', 'detail', id] as const,
   },
   registrationTokens: {
     all: ['registrationTokens'] as const,
@@ -91,6 +97,7 @@ function pickUsageFilters(f: CanonicalUsageFilters): CanonicalUsageFilters {
   if (f.account_id !== undefined) out.account_id = f.account_id;
   if (f.api_key_id !== undefined) out.api_key_id = f.api_key_id;
   if (f.user_id !== undefined) out.user_id = f.user_id;
+  if (f.node_id !== undefined) out.node_id = f.node_id;
   return out;
 }
 

@@ -11,6 +11,11 @@ export type UsageFilters = {
   account_id?: number;
   api_key_id?: number;
   user_id?: number;
+  // Node attribution filter (Distributed Nodes). NOTE: the backend analytics
+  // endpoints (/usage/summary etc.) do not honor node_id yet — only the
+  // legacy /api/admin/usage does. Wired end-to-end here so the Nodes page
+  // link round-trips and filtering lights up when the backend adds it.
+  node_id?: number;
 };
 
 export type TimeseriesFilters = UsageFilters & {
@@ -28,6 +33,7 @@ export type CanonicalUsageFilters = {
   account_id?: number;
   api_key_id?: number;
   user_id?: number;
+  node_id?: number;
 };
 
 export type CanonicalTimeseriesFilters = CanonicalUsageFilters & {
@@ -88,8 +94,8 @@ export function isRangeValid(since: string, until: string): boolean {
 }
 
 // Canonicalize: drop empties, reject invalid IDs, enforce key order (since,
-// until, model, account_id, api_key_id, user_id). Invalid since/until return
-// null — caller should treat that as "don't fetch".
+// until, model, account_id, api_key_id, user_id, node_id). Invalid
+// since/until return null — caller should treat that as "don't fetch".
 export function canonicalizeUsageFilters(
   raw: Partial<UsageFilters>,
 ): CanonicalUsageFilters | null {
@@ -108,6 +114,9 @@ export function canonicalizeUsageFilters(
 
   const userId = parseId(raw.user_id);
   if (userId !== undefined) out.user_id = userId;
+
+  const nodeId = parseId(raw.node_id);
+  if (nodeId !== undefined) out.node_id = nodeId;
 
   return out;
 }

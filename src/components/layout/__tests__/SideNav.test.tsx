@@ -26,6 +26,7 @@ describe('SideNav', () => {
     expect(screen.getByTestId('sidenav-link-users')).toBeInTheDocument();
     expect(screen.getByTestId('sidenav-link-accounts')).toBeInTheDocument();
     expect(screen.getByTestId('sidenav-link-pricing')).toBeInTheDocument();
+    expect(screen.getByTestId('sidenav-link-nodes')).toBeInTheDocument();
     expect(
       screen.getByTestId('sidenav-link-registration-tokens'),
     ).toBeInTheDocument();

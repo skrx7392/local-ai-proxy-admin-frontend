@@ -26,6 +26,20 @@ describe('readUsageFiltersFromUrl', () => {
     expect(f.account_id).toBe(502);
   });
 
+  it('round-trips node_id (the Nodes page per-node usage link)', () => {
+    const sp = new URLSearchParams('node_id=7');
+    const f = readUsageFiltersFromUrl(sp, { now: FIXED_NOW });
+    expect(f.node_id).toBe(7);
+    const c = canonicalFromUrl(sp, { now: FIXED_NOW });
+    expect(c?.node_id).toBe(7);
+  });
+
+  it('drops a malformed node_id', () => {
+    const sp = new URLSearchParams('node_id=abc');
+    const f = readUsageFiltersFromUrl(sp, { now: FIXED_NOW });
+    expect(f.node_id).toBeUndefined();
+  });
+
   it('ignores malformed ids + non-ISO dates rather than sending bad requests', () => {
     const sp = new URLSearchParams(
       'since=yesterday&until=today&account_id=abc&model=',

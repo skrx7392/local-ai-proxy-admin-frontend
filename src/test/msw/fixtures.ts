@@ -265,6 +265,77 @@ export const registrationTokens = [
   },
 ] as const;
 
+// Distributed Nodes — `GET /api/admin/nodes`. Matches
+// internal/admin/nodes.go::nodeDTO: masked stored config + live registry
+// state. auth_header is ALWAYS masked (write-only); last_error is
+// `omitempty` (absent on healthy nodes); source "config" nodes are
+// read-only via the API (mutations 409).
+export const nodes = [
+  {
+    id: 1,
+    name: 'workstation',
+    base_url: 'http://192.0.2.10:11434',
+    backend_type: 'ollama' as const,
+    auth_header: null,
+    static_models: null,
+    health_path: null,
+    timeout_seconds: 900,
+    enabled: true,
+    source: 'api' as const,
+    created_at: '2026-07-01T00:00:00Z',
+    updated_at: '2026-07-01T00:00:00Z',
+    health: 'healthy' as const,
+    models: ['llama3.1:8b', 'qwen3-coder:30b'],
+    last_checked_at: '2026-07-07T10:00:00Z',
+  },
+  {
+    id: 2,
+    name: 'cloud',
+    base_url: 'https://api.example.com',
+    backend_type: 'openai_compat' as const,
+    auth_header: 'Bearer sk-…abcd',
+    static_models: ['gpt-4o-mini'],
+    health_path: '/healthz',
+    timeout_seconds: null,
+    enabled: true,
+    source: 'api' as const,
+    created_at: '2026-07-02T00:00:00Z',
+    updated_at: '2026-07-05T00:00:00Z',
+    health: 'unhealthy' as const,
+    models: [],
+    last_error: 'dial tcp: connection refused',
+    last_checked_at: '2026-07-07T10:00:05Z',
+  },
+  {
+    id: 3,
+    name: 'default',
+    base_url: 'http://ollama.local:11434',
+    backend_type: 'ollama' as const,
+    auth_header: null,
+    static_models: null,
+    health_path: null,
+    timeout_seconds: null,
+    enabled: true,
+    source: 'config' as const,
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+    health: 'unknown' as const,
+    models: [],
+    last_checked_at: null,
+  },
+];
+
+// Standard error body for mutations on config-sourced nodes.
+export const configSourcedNodeError = {
+  error: {
+    code: 'config_sourced_node',
+    type: 'invalid_request_error',
+    message:
+      'Node is managed by the nodes config file (NODES_FILE); edit the file instead',
+  },
+  request_id: 'req-fixture-409',
+};
+
 // BE 5 — `GET /api/admin/config`. Bare object (no envelope). Mirrors
 // internal/admin/config_health.go::ConfigSnapshot; must stay identical
 // to what `AdminConfigSchema` accepts on the FE.
@@ -298,6 +369,22 @@ export const adminHealthOk = {
   },
   uptime_seconds: 12_345,
   version: 'abc1234',
+  // Distributed Nodes — per-node breakdown (config_health.go::nodeHealthDTO).
+  nodes: [
+    {
+      name: 'workstation',
+      health: 'healthy' as const,
+      last_checked_at: '2026-07-07T10:00:00Z',
+      model_count: 2,
+    },
+    {
+      name: 'cloud',
+      health: 'unhealthy' as const,
+      last_error: 'dial tcp: connection refused',
+      last_checked_at: '2026-07-07T10:00:05Z',
+      model_count: 0,
+    },
+  ],
 };
 
 // Degraded snapshot — served with HTTP 503. UI renders a red dot +
@@ -319,4 +406,30 @@ export const adminHealthDegraded = {
   },
   uptime_seconds: 42,
   version: 'abc1234',
+  nodes: [
+    {
+      name: 'workstation',
+      health: 'unhealthy' as const,
+      last_error: 'dial tcp: i/o timeout',
+      last_checked_at: '2026-07-07T10:00:00Z',
+      model_count: 0,
+    },
+  ],
+};
+
+// Zero enabled nodes — the backend adds a first-class warning string.
+export const adminHealthNoNodes = {
+  status: 'ok' as const,
+  checks: {
+    db: { status: 'ok' as const, latency_ms: 3 },
+    usage_writer: {
+      status: 'ok' as const,
+      queue_depth: 0,
+      queue_capacity: 1000,
+    },
+  },
+  uptime_seconds: 60,
+  version: 'abc1234',
+  nodes: [],
+  warning: 'no nodes configured',
 };

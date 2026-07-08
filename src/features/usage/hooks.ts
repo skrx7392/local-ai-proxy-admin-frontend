@@ -92,5 +92,6 @@ function paramsFromFilters(
   if (f.account_id !== undefined) out.account_id = f.account_id;
   if (f.api_key_id !== undefined) out.api_key_id = f.api_key_id;
   if (f.user_id !== undefined) out.user_id = f.user_id;
+  if (f.node_id !== undefined) out.node_id = f.node_id;
   return out;
 }

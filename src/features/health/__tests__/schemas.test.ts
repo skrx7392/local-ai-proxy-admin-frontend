@@ -67,4 +67,72 @@ describe('AdminHealthSchema', () => {
     });
     expect(parsed.checks).toEqual({});
   });
+
+  it('parses the nodes breakdown (Distributed Nodes)', () => {
+    const parsed = AdminHealthSchema.parse({
+      status: 'ok',
+      checks: {},
+      uptime_seconds: 0,
+      version: 'x',
+      nodes: [
+        {
+          name: 'workstation',
+          health: 'healthy',
+          last_checked_at: '2026-07-07T10:00:00Z',
+          model_count: 2,
+        },
+        {
+          name: 'cloud',
+          health: 'unhealthy',
+          last_error: 'dial tcp: connection refused',
+          last_checked_at: null,
+          model_count: 0,
+        },
+      ],
+    });
+    expect(parsed.nodes).toHaveLength(2);
+    expect(parsed.nodes?.[1]?.last_error).toContain('refused');
+  });
+
+  it('parses the zero-node warning', () => {
+    const parsed = AdminHealthSchema.parse({
+      status: 'ok',
+      checks: {},
+      uptime_seconds: 0,
+      version: 'x',
+      nodes: [],
+      warning: 'no nodes configured',
+    });
+    expect(parsed.warning).toBe('no nodes configured');
+  });
+
+  it('still accepts a snapshot without nodes/warning (pre-registry backend)', () => {
+    const parsed = AdminHealthSchema.parse({
+      status: 'ok',
+      checks: {},
+      uptime_seconds: 0,
+      version: 'x',
+    });
+    expect(parsed.nodes).toBeUndefined();
+    expect(parsed.warning).toBeUndefined();
+  });
+
+  it('rejects an invalid node health value', () => {
+    expect(() =>
+      AdminHealthSchema.parse({
+        status: 'ok',
+        checks: {},
+        uptime_seconds: 0,
+        version: 'x',
+        nodes: [
+          {
+            name: 'n',
+            health: 'flapping',
+            last_checked_at: null,
+            model_count: 0,
+          },
+        ],
+      }),
+    ).toThrow();
+  });
 });

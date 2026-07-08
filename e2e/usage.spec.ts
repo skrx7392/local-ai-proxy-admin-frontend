@@ -28,6 +28,13 @@ test.describe('usage analytics', () => {
   test('/usage tabs lazy-mount — only the active tab’s endpoint is called', async ({
     page,
   }) => {
+    // login() resolves on the URL change to `/`, which can be BEFORE the
+    // dashboard fires its own summary + timeseries fetches. Let those land
+    // first (charts visible ⇒ responses arrived) so they can't bleed into
+    // the capture below and read as /usage calling /timeseries eagerly.
+    await expect(page.getByTestId('dashboard-stat-requests')).toBeVisible();
+    await expect(page.getByTestId('dashboard-timeseries')).toBeVisible();
+
     const calls: string[] = [];
     page.on('request', (request) => {
       const url = new URL(request.url());
@@ -36,21 +43,25 @@ test.describe('usage analytics', () => {
       }
     });
 
+    // Register the waiter BEFORE navigating — the summary response can win
+    // the race against a waitForResponse attached after goto resolves.
+    const summaryDone = page.waitForResponse(
+      (r) => r.url().includes('/api/admin/usage/summary') && r.ok(),
+    );
     await page.goto('/usage');
     await expect(page.getByTestId('usage-tab-summary')).toBeVisible();
 
     // Summary tab is active by default.
-    await page.waitForResponse(
-      (r) => r.url().includes('/api/admin/usage/summary') && r.ok(),
-    );
+    await summaryDone;
     expect(calls.some((p) => p.endsWith('/summary'))).toBe(true);
     expect(calls.some((p) => p.endsWith('/by-model'))).toBe(false);
     expect(calls.some((p) => p.endsWith('/timeseries'))).toBe(false);
 
-    await page.getByTestId('usage-tab-timeseries').click();
-    await page.waitForResponse(
+    const timeseriesDone = page.waitForResponse(
       (r) => r.url().includes('/api/admin/usage/timeseries') && r.ok(),
     );
+    await page.getByTestId('usage-tab-timeseries').click();
+    await timeseriesDone;
     expect(calls.some((p) => p.endsWith('/timeseries'))).toBe(true);
   });
 
