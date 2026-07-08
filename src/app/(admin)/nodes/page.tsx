@@ -42,6 +42,9 @@ export default function NodesPage() {
   const refresh = useRefreshNode();
 
   const refreshingId = refresh.isPending ? refresh.variables : undefined;
+  // mutation.mutate is referentially stable in react-query v5, so the
+  // columns only rebuild when the per-row loading state actually changes.
+  const refreshNode = refresh.mutate;
 
   const columns = useMemo(
     () =>
@@ -52,10 +55,10 @@ export default function NodesPage() {
           setFormOpen(true);
         },
         onDisable: (node) => setDisableTarget(node),
-        onRefresh: (node) => refresh.mutate(node.id),
+        onRefresh: (node) => refreshNode(node.id),
         refreshingId,
       }),
-    [refresh, refreshingId],
+    [refreshNode, refreshingId],
   );
 
   const rows = listQuery.data?.data ?? [];
