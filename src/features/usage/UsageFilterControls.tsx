@@ -11,9 +11,17 @@ import {
 } from '@chakra-ui/react';
 import { useState } from 'react';
 
-import { FilterBar } from '@/components/data';
+import { FilterBar, FilterCombobox } from '@/components/data';
 import type { UrlPatch } from '@/lib/url/listState';
 
+import {
+  useAccountOptions,
+  useApiKeyOptions,
+  useModelOptions,
+  useNodeOptions,
+  useUserOptions,
+  type EntityOptionsResult,
+} from './entityOptions';
 import {
   QUICK_PICK_MS,
   isIso,
@@ -109,23 +117,23 @@ export function UsageFilterControls({
     onChange({ since: sinceIso, until: untilIso }, { resetOffset: true });
   }
 
-  function applyModel(value: string): void {
-    const trimmed = value.trim();
+  function applyModel(value: string | null): void {
+    const trimmed = value?.trim() ?? '';
     onChange({ model: trimmed || null }, { resetOffset: true });
   }
 
   function applyId(
     key: 'account_id' | 'api_key_id' | 'user_id' | 'node_id',
-    value: string,
+    value: string | null,
   ): void {
-    if (value.trim() === '') {
+    if (value === null || value.trim() === '') {
       onChange({ [key]: null }, { resetOffset: true });
       return;
     }
+    // Values come from picker options so they're always valid ids; the
+    // parse is a guard against malformed input ever reaching the wire —
+    // "validate or intentionally omit, don't send confusing requests".
     const id = parseId(value);
-    // Malformed IDs are silently omitted — the instruction was "validate or
-    // intentionally omit, don't send confusing requests". The input stays
-    // red so the user sees they typed garbage.
     if (id === undefined) return;
     onChange({ [key]: id }, { resetOffset: true });
   }
@@ -184,22 +192,7 @@ export function UsageFilterControls({
           </Button>
         </HStack>
 
-        <chakra.label display="inline-flex" alignItems="center" gap="2">
-          <Text textStyle="body.sm" color="fg.muted">
-            Model
-          </Text>
-          <Input
-            size="sm"
-            width="180px"
-            defaultValue={filters.model ?? ''}
-            placeholder="llama3.1:8b"
-            data-testid="usage-filter-model"
-            onBlur={(e) => applyModel(e.currentTarget.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') applyModel(e.currentTarget.value);
-            }}
-          />
-        </chakra.label>
+        <ModelFilter model={filters.model} onApply={applyModel} />
 
         <Button
           size="sm"
@@ -221,31 +214,8 @@ export function UsageFilterControls({
       )}
 
       {advancedOpen && (
-        <HStack gap="3" data-testid="usage-filter-advanced">
-          <IdField
-            label="Account ID"
-            defaultValue={filters.account_id}
-            testId="usage-filter-account-id"
-            onCommit={(v) => applyId('account_id', v)}
-          />
-          <IdField
-            label="API key ID"
-            defaultValue={filters.api_key_id}
-            testId="usage-filter-api-key-id"
-            onCommit={(v) => applyId('api_key_id', v)}
-          />
-          <IdField
-            label="User ID"
-            defaultValue={filters.user_id}
-            testId="usage-filter-user-id"
-            onCommit={(v) => applyId('user_id', v)}
-          />
-          <IdField
-            label="Node ID"
-            defaultValue={filters.node_id}
-            testId="usage-filter-node-id"
-            onCommit={(v) => applyId('node_id', v)}
-          />
+        <HStack gap="3" wrap="wrap" data-testid="usage-filter-advanced">
+          <EntityFilters filters={filters} onApply={applyId} />
           {showInterval && (
             <chakra.label display="inline-flex" alignItems="center" gap="2">
               <Text textStyle="body.sm" color="fg.muted">
@@ -334,33 +304,106 @@ function CustomRangeRow({
   );
 }
 
-function IdField({
-  label,
-  defaultValue,
-  testId,
-  onCommit,
+// The model filter is always visible, so its options hook lives in its own
+// component purely for cohesion — /nodes is the same query the Nodes page
+// runs and react-query dedupes it. Free text stays allowed (historical
+// models that are no longer deployed on any node).
+function ModelFilter({
+  model,
+  onApply,
 }: {
-  label: string;
-  defaultValue: number | undefined;
-  testId: string;
-  onCommit: (value: string) => void;
+  model: string | undefined;
+  onApply: (value: string | null) => void;
 }) {
+  const { options, isLoading } = useModelOptions();
   return (
-    <chakra.label display="inline-flex" alignItems="center" gap="2">
-      <Text textStyle="body.sm" color="fg.muted">
-        {label}
-      </Text>
-      <Input
-        size="sm"
-        width="120px"
-        inputMode="numeric"
-        defaultValue={defaultValue ?? ''}
-        data-testid={testId}
-        onBlur={(e) => onCommit(e.currentTarget.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') onCommit(e.currentTarget.value);
-        }}
-      />
-    </chakra.label>
+    <FilterCombobox
+      label="Model"
+      options={options}
+      value={model}
+      onValueChange={onApply}
+      placeholder="Any model"
+      isLoading={isLoading}
+      allowCustomValue
+      inputWidth="200px"
+      data-testid="usage-filter-model"
+    />
+  );
+}
+
+type EntityKey = 'account_id' | 'api_key_id' | 'user_id' | 'node_id';
+
+// Mounted only while the Advanced panel is open, so the four entity lists
+// are fetched lazily — opening /usage without touching Advanced costs no
+// extra requests beyond the model list.
+function EntityFilters({
+  filters,
+  onApply,
+}: {
+  filters: UsageFilters;
+  onApply: (key: EntityKey, value: string | null) => void;
+}) {
+  const accounts = useAccountOptions();
+  const keys = useApiKeyOptions();
+  const users = useUserOptions();
+  const nodes = useNodeOptions();
+
+  const pickers: readonly {
+    key: EntityKey;
+    label: string;
+    placeholder: string;
+    testId: string;
+    value: number | undefined;
+    data: EntityOptionsResult;
+  }[] = [
+    {
+      key: 'account_id',
+      label: 'Account',
+      placeholder: 'All accounts',
+      testId: 'usage-filter-account-id',
+      value: filters.account_id,
+      data: accounts,
+    },
+    {
+      key: 'api_key_id',
+      label: 'API key',
+      placeholder: 'All keys',
+      testId: 'usage-filter-api-key-id',
+      value: filters.api_key_id,
+      data: keys,
+    },
+    {
+      key: 'user_id',
+      label: 'User',
+      placeholder: 'All users',
+      testId: 'usage-filter-user-id',
+      value: filters.user_id,
+      data: users,
+    },
+    {
+      key: 'node_id',
+      label: 'Node',
+      placeholder: 'All nodes',
+      testId: 'usage-filter-node-id',
+      value: filters.node_id,
+      data: nodes,
+    },
+  ];
+
+  return (
+    <>
+      {pickers.map((picker) => (
+        <FilterCombobox
+          key={picker.key}
+          label={picker.label}
+          options={picker.data.options}
+          value={picker.value?.toString()}
+          onValueChange={(v) => onApply(picker.key, v)}
+          placeholder={picker.placeholder}
+          isLoading={picker.data.isLoading}
+          data-testid={picker.testId}
+        />
+      ))}
+    </>
   );
 }
