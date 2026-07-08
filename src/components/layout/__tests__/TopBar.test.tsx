@@ -1,12 +1,14 @@
 import { ChakraProvider } from '@chakra-ui/react';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { system } from '@/theme';
 
 const signOutMock = vi.fn();
-const getSessionMock = vi.fn();
+// The expiry verification probes /api/auth/session with a raw fetch (NOT
+// next-auth's getSession, which swallows errors and broadcasts).
+const fetchMock = vi.fn();
 
 type MockSession = {
   data: {
@@ -21,7 +23,6 @@ let mockSession: MockSession;
 vi.mock('next-auth/react', () => ({
   useSession: () => mockSession,
   signOut: (...args: unknown[]) => signOutMock(...args),
-  getSession: (...args: unknown[]) => getSessionMock(...args),
 }));
 
 // Children with their own data/router dependencies are out of scope here —
@@ -47,12 +48,24 @@ function wrap(ui: ReactNode) {
   return render(<ChakraProvider value={system}>{ui}</ChakraProvider>);
 }
 
+function sessionProbeResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 describe('<TopBar /> session timer', () => {
   beforeEach(() => {
     signOutMock.mockReset();
-    getSessionMock.mockReset();
-    // Default: the server agrees the session is gone.
-    getSessionMock.mockResolvedValue(null);
+    fetchMock.mockReset();
+    vi.stubGlobal('fetch', fetchMock);
+    // Default: the server agrees the session is gone (v5 answers `null`).
+    fetchMock.mockImplementation(async () => sessionProbeResponse(null));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('labels the countdown so it reads as a session timer, with no warning far from expiry', () => {
@@ -98,7 +111,7 @@ describe('<TopBar /> session timer', () => {
     await waitFor(() => expect(signOutMock).toHaveBeenCalledTimes(1));
     // The server was consulted first — expiry is never decided by the
     // client clock alone.
-    expect(getSessionMock).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith('/api/auth/session', expect.anything());
     const arg = signOutMock.mock.calls[0]![0] as {
       callbackUrl: string;
       redirect: boolean;
@@ -112,16 +125,30 @@ describe('<TopBar /> session timer', () => {
   });
 
   it('does not sign out on a skewed client clock while the server still honors the session', async () => {
-    // Client clock says expired, but getSession() (server authority) still
-    // returns a session — e.g. the workstation clock runs a minute ahead.
-    getSessionMock.mockResolvedValue({
-      user: { id: '1', email: 'admin@kinvee.in', role: 'admin' },
-      expires: new Date(Date.now() + 60 * 1000).toISOString(),
-    });
+    // Client clock says expired, but the server (authority) still returns a
+    // session — e.g. the workstation clock runs a minute ahead.
+    fetchMock.mockImplementation(async () =>
+      sessionProbeResponse({
+        user: { id: '1', email: 'admin@kinvee.in', role: 'admin' },
+        expires: new Date(Date.now() + 60 * 1000).toISOString(),
+      }),
+    );
     mockSession = authenticatedIn(-5);
     wrap(<TopBar />);
 
-    await waitFor(() => expect(getSessionMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  it('does not treat a failed session probe as expiry', async () => {
+    // A glitch on /api/auth/session must NOT log the user out — only an
+    // explicit "no session" answer may. (next-auth's getSession() would
+    // have collapsed this into null.)
+    fetchMock.mockImplementation(async () => new Response('oops', { status: 500 }));
+    mockSession = authenticatedIn(-5);
+    wrap(<TopBar />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
