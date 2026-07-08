@@ -3,7 +3,7 @@ import type { AdminConfig } from './schemas';
 export type ConfigFieldKey = keyof AdminConfig;
 
 export type ConfigGroup = {
-  id: 'backend' | 'limits' | 'observability' | 'build';
+  id: 'backend' | 'limits' | 'auth' | 'observability' | 'build';
   label: string;
   fields: readonly { key: ConfigFieldKey; label: string; render?: (v: AdminConfig[ConfigFieldKey]) => string }[];
 };
@@ -36,6 +36,8 @@ export const CONFIG_GROUPS: readonly ConfigGroup[] = [
       { key: 'port', label: 'Port' },
       { key: 'log_level', label: 'Log level' },
       { key: 'cors_origins', label: 'CORS origins' },
+      { key: 'nodes_file', label: 'Nodes file' },
+      { key: 'models_list_all', label: 'List all models' },
     ],
   },
   {
@@ -45,6 +47,11 @@ export const CONFIG_GROUPS: readonly ConfigGroup[] = [
       {
         key: 'max_request_body_bytes',
         label: 'Max request body',
+        render: (v) => formatBytes(v as number),
+      },
+      {
+        key: 'max_json_request_body_bytes',
+        label: 'Max JSON body',
         render: (v) => formatBytes(v as number),
       },
       {
@@ -65,6 +72,34 @@ export const CONFIG_GROUPS: readonly ConfigGroup[] = [
         key: 'user_session_duration_hours',
         label: 'User session duration',
         render: (v) => `${v} h`,
+      },
+    ],
+  },
+  {
+    // 2026-07 security hardening — auth throttles. Optional on the schema
+    // (older backends omit them); missing values render as "—".
+    id: 'auth',
+    label: 'Auth limits',
+    fields: [
+      {
+        key: 'auth_login_rate_limit_per_minute',
+        label: 'Login rate limit (per min)',
+      },
+      {
+        key: 'auth_login_email_rate_limit_per_minute',
+        label: 'Login per-email limit (per min)',
+      },
+      {
+        key: 'auth_register_rate_limit_per_minute',
+        label: 'Register rate limit (per min)',
+      },
+      {
+        key: 'auth_general_rate_limit_per_minute',
+        label: 'General auth limit (per min)',
+      },
+      {
+        key: 'auth_bcrypt_max_concurrent',
+        label: 'Bcrypt max concurrent',
       },
     ],
   },

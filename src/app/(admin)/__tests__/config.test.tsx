@@ -34,6 +34,7 @@ describe('/config — grouped snapshot', () => {
     });
 
     expect(getByTestId('config-group-limits')).toBeTruthy();
+    expect(getByTestId('config-group-auth')).toBeTruthy();
     expect(getByTestId('config-group-observability')).toBeTruthy();
     expect(getByTestId('config-group-build')).toBeTruthy();
 
@@ -47,6 +48,14 @@ describe('/config — grouped snapshot', () => {
     expect(getByTestId('config-value-version').textContent).toBe(
       adminConfig.version,
     );
+    // Fields the backend added post-launch (2026-07 security hardening).
+    expect(
+      getByTestId('config-value-auth_login_rate_limit_per_minute').textContent,
+    ).toBe(String(adminConfig.auth_login_rate_limit_per_minute));
+    expect(getByTestId('config-value-max_json_request_body_bytes').textContent)
+      .toBe('1.0 MiB');
+    // Unset string values render as an em dash, not an empty cell.
+    expect(getByTestId('config-value-nodes_file').textContent).toBe('—');
   });
 
   it('renders an error alert when the backend returns a non-allowlisted status', async () => {
