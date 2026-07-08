@@ -4,7 +4,9 @@ import {
   accounts,
   adminConfig,
   adminHealthOk,
+  configSourcedNodeError,
   keys,
+  nodes,
   pricing,
   registrationEvents,
   registrationTokens,
@@ -22,6 +24,19 @@ import {
 
 const ORIGIN = '*';
 const base = (path: string) => `${ORIGIN}/api/admin${path}`;
+
+function nodeNotFound() {
+  return HttpResponse.json(
+    {
+      error: {
+        code: 'node_not_found',
+        type: 'invalid_request_error',
+        message: 'Unknown node id',
+      },
+    },
+    { status: 404 },
+  );
+}
 
 function envelope<T>(
   items: readonly T[],
@@ -192,6 +207,85 @@ export const handlers = [
   http.get(base('/usage/timeseries'), () =>
     HttpResponse.json({ data: usageTimeseries }),
   ),
+
+  // ---- Nodes (Distributed Nodes FE-1) ----
+  // Every response uses the `{data}` envelope. Mutations on the
+  // config-sourced fixture (id 3) return 409 like the real backend;
+  // unknown ids return 404.
+  http.get(base('/nodes'), ({ request }) => {
+    const url = new URL(request.url);
+    return HttpResponse.json(envelope(nodes, url));
+  }),
+  http.get(base('/nodes/:id'), ({ params }) => {
+    const node = nodes.find((n) => String(n.id) === params.id);
+    if (!node) return nodeNotFound();
+    return HttpResponse.json({ data: node });
+  }),
+  http.post(base('/nodes'), async ({ request }) => {
+    const body = (await request.json()) as {
+      name?: string;
+      base_url?: string;
+      backend_type?: string;
+      auth_header?: string;
+      static_models?: string[];
+      health_path?: string;
+      timeout_seconds?: number;
+    };
+    return HttpResponse.json(
+      {
+        data: {
+          id: 9,
+          name: body?.name ?? 'new-node',
+          base_url: body?.base_url ?? 'http://new-node:11434',
+          backend_type: body?.backend_type ?? 'ollama',
+          // Echoed back MASKED, exactly like the backend.
+          auth_header: body?.auth_header ? 'Bearer sk-…mask' : null,
+          static_models: body?.static_models ?? null,
+          health_path: body?.health_path ?? null,
+          timeout_seconds: body?.timeout_seconds ?? null,
+          enabled: true,
+          source: 'api',
+          created_at: '2026-07-07T12:00:00Z',
+          updated_at: '2026-07-07T12:00:00Z',
+          // Probed synchronously on create — initial health is real.
+          health: 'healthy',
+          models: body?.static_models ?? ['llama3.1:8b'],
+          last_checked_at: '2026-07-07T12:00:00Z',
+        },
+      },
+      { status: 201 },
+    );
+  }),
+  http.put(base('/nodes/:id'), ({ params }) => {
+    const node = nodes.find((n) => String(n.id) === params.id);
+    if (!node) return nodeNotFound();
+    if (node.source === 'config') {
+      return HttpResponse.json(configSourcedNodeError, { status: 409 });
+    }
+    return HttpResponse.json({
+      data: { ...node, updated_at: '2026-07-07T12:30:00Z' },
+    });
+  }),
+  http.delete(base('/nodes/:id'), ({ params }) => {
+    const node = nodes.find((n) => String(n.id) === params.id);
+    if (!node) return nodeNotFound();
+    if (node.source === 'config') {
+      return HttpResponse.json(configSourcedNodeError, { status: 409 });
+    }
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.post(base('/nodes/:id/refresh'), ({ params }) => {
+    const node = nodes.find((n) => String(n.id) === params.id);
+    if (!node) return nodeNotFound();
+    return HttpResponse.json({
+      data: {
+        ...node,
+        health: 'healthy',
+        last_error: undefined,
+        last_checked_at: '2026-07-07T12:34:56Z',
+      },
+    });
+  }),
 
   // ---- Config + Health (BE 5) ----
   // Both return bare objects (no envelope). Health returns 200 here;

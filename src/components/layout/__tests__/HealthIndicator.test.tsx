@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
 
-import { adminHealthDegraded } from '@/test/msw/fixtures';
+import { adminHealthDegraded, adminHealthNoNodes } from '@/test/msw/fixtures';
 import { server } from '@/test/msw/server';
 import { useMockBackend } from '@/test/msw/useMockBackend';
 import { system } from '@/theme';
@@ -82,5 +82,40 @@ describe('<HealthIndicator />', () => {
     await findByTestId('topbar-health-check-db');
     await findByTestId('topbar-health-check-ollama');
     await findByTestId('topbar-health-check-usage_writer');
+  });
+
+  it('renders a per-node row with model count / last error (Distributed Nodes)', async () => {
+    const { getByTestId, findByTestId } = wrap(<HealthIndicator />);
+    await waitFor(() =>
+      expect(getByTestId('topbar-health').getAttribute('data-health-tone')).toBe(
+        'ok',
+      ),
+    );
+
+    fireEvent.click(getByTestId('topbar-health'));
+
+    const healthy = await findByTestId('topbar-health-node-workstation');
+    expect(healthy.textContent).toContain('2 models');
+    const unhealthy = await findByTestId('topbar-health-node-cloud');
+    expect(unhealthy.textContent).toContain('connection refused');
+  });
+
+  it('surfaces the "no nodes configured" warning', async () => {
+    server.use(
+      http.get('*/api/admin/health', () =>
+        HttpResponse.json(adminHealthNoNodes),
+      ),
+    );
+    const { getByTestId, findByTestId } = wrap(<HealthIndicator />);
+    await waitFor(() =>
+      expect(getByTestId('topbar-health').getAttribute('data-health-tone')).toBe(
+        'ok',
+      ),
+    );
+
+    fireEvent.click(getByTestId('topbar-health'));
+
+    const warning = await findByTestId('topbar-health-warning');
+    expect(warning.textContent).toBe('no nodes configured');
   });
 });

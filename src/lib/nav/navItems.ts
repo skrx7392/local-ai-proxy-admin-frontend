@@ -5,6 +5,7 @@ import {
   Home,
   Key,
   Link as LinkIcon,
+  Server,
   Settings,
   UserPlus,
   Users,
@@ -30,6 +31,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { href: '/users', label: 'Users', icon: Users, shortcut: 'u' },
   { href: '/accounts', label: 'Accounts', icon: Coins },
   { href: '/pricing', label: 'Pricing', icon: DollarSign },
+  { href: '/nodes', label: 'Nodes', icon: Server },
   {
     href: '/registration-tokens',
     label: 'Registration tokens',

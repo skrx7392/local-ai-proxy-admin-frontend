@@ -58,6 +58,8 @@ export function HealthIndicator() {
 
   const checks = query.data?.checks ?? {};
   const checkEntries = Object.entries(checks);
+  const nodeEntries = query.data?.nodes ?? [];
+  const warning = query.data?.warning;
 
   return (
     <Popover.Root positioning={{ placement: 'bottom-end' }}>
@@ -112,6 +114,15 @@ export function HealthIndicator() {
                     </Text>
                   )}
                 </Stack>
+                {warning && (
+                  <Text
+                    textStyle="caption"
+                    color="yellow.500"
+                    data-testid="topbar-health-warning"
+                  >
+                    {warning}
+                  </Text>
+                )}
                 {checkEntries.length > 0 && (
                   <Stack gap="2" as="ul" listStyleType="none" paddingInlineStart="0">
                     {checkEntries.map(([name, result]) => (
@@ -144,6 +155,52 @@ export function HealthIndicator() {
                         </Text>
                       </HStack>
                     ))}
+                  </Stack>
+                )}
+                {nodeEntries.length > 0 && (
+                  <Stack gap="2">
+                    <Text textStyle="caption" color="fg.muted">
+                      Nodes
+                    </Text>
+                    <Stack
+                      gap="2"
+                      as="ul"
+                      listStyleType="none"
+                      paddingInlineStart="0"
+                    >
+                      {nodeEntries.map((node) => (
+                        <HStack
+                          key={node.name}
+                          justify="space-between"
+                          gap="3"
+                          as="li"
+                          data-testid={`topbar-health-node-${node.name}`}
+                        >
+                          <HStack gap="2">
+                            <Box
+                              width="2"
+                              height="2"
+                              borderRadius="full"
+                              background={
+                                node.health === 'healthy'
+                                  ? 'green.500'
+                                  : node.health === 'unhealthy'
+                                    ? 'red.500'
+                                    : 'gray.500'
+                              }
+                            />
+                            <Text textStyle="body.sm" fontFamily="mono">
+                              {node.name}
+                            </Text>
+                          </HStack>
+                          <Text textStyle="caption" color="fg.muted">
+                            {node.health === 'unhealthy'
+                              ? (node.last_error ?? 'unhealthy')
+                              : `${node.model_count} model${node.model_count === 1 ? '' : 's'}`}
+                          </Text>
+                        </HStack>
+                      ))}
+                    </Stack>
                   </Stack>
                 )}
               </Stack>

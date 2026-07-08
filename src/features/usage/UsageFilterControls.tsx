@@ -79,7 +79,8 @@ export function UsageFilterControls({
   const [advancedOpen, setAdvancedOpen] = useState(
     filters.account_id !== undefined ||
       filters.api_key_id !== undefined ||
-      filters.user_id !== undefined,
+      filters.user_id !== undefined ||
+      filters.node_id !== undefined,
   );
   const [customError, setCustomError] = useState<string | null>(null);
 
@@ -114,7 +115,7 @@ export function UsageFilterControls({
   }
 
   function applyId(
-    key: 'account_id' | 'api_key_id' | 'user_id',
+    key: 'account_id' | 'api_key_id' | 'user_id' | 'node_id',
     value: string,
   ): void {
     if (value.trim() === '') {
@@ -134,7 +135,8 @@ export function UsageFilterControls({
     filters.model !== undefined ||
     filters.account_id !== undefined ||
     filters.api_key_id !== undefined ||
-    filters.user_id !== undefined;
+    filters.user_id !== undefined ||
+    filters.node_id !== undefined;
 
   return (
     <Stack gap="3" data-testid="usage-filter-controls">
@@ -153,6 +155,7 @@ export function UsageFilterControls({
               account_id: null,
               api_key_id: null,
               user_id: null,
+              node_id: null,
               interval: null,
             },
             { resetOffset: true },
@@ -236,6 +239,12 @@ export function UsageFilterControls({
             defaultValue={filters.user_id}
             testId="usage-filter-user-id"
             onCommit={(v) => applyId('user_id', v)}
+          />
+          <IdField
+            label="Node ID"
+            defaultValue={filters.node_id}
+            testId="usage-filter-node-id"
+            onCommit={(v) => applyId('node_id', v)}
           />
           {showInterval && (
             <chakra.label display="inline-flex" alignItems="center" gap="2">

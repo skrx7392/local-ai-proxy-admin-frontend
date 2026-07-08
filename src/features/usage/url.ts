@@ -20,6 +20,7 @@ export const USAGE_URL_KEYS = [
   'account_id',
   'api_key_id',
   'user_id',
+  'node_id',
   'interval',
 ] as const;
 
@@ -48,6 +49,9 @@ export function readUsageFiltersFromUrl(
 
   const userId = parseId(sp?.get('user_id'));
   if (userId !== undefined) filters.user_id = userId;
+
+  const nodeId = parseId(sp?.get('node_id'));
+  if (nodeId !== undefined) filters.node_id = nodeId;
 
   return filters;
 }

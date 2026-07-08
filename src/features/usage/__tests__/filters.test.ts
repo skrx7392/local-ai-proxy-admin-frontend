@@ -101,6 +101,27 @@ describe('canonicalizeUsageFilters', () => {
     expect(a).not.toBeNull();
     expect(a!.account_id).toBeUndefined();
   });
+
+  it('keeps node_id last in the canonical key order', () => {
+    const a = canonicalizeUsageFilters({
+      since: ISO_A,
+      until: ISO_B,
+      user_id: 1,
+      node_id: '7' as unknown as number,
+    });
+    expect(a).not.toBeNull();
+    expect(Object.keys(a!)).toEqual(['since', 'until', 'user_id', 'node_id']);
+    expect(a!.node_id).toBe(7);
+  });
+
+  it('omits malformed node_id', () => {
+    const a = canonicalizeUsageFilters({
+      since: ISO_A,
+      until: ISO_B,
+      node_id: 'abc' as unknown as number,
+    });
+    expect(a!.node_id).toBeUndefined();
+  });
 });
 
 describe('canonicalizeTimeseriesFilters', () => {

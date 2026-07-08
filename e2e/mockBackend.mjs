@@ -191,6 +191,72 @@ const registrationEvents = [
   },
 ];
 
+// Distributed Nodes — matches internal/admin/nodes.go::nodeDTO. auth_header
+// is always masked; id 3 is config-sourced (mutations 409).
+const nodesFixture = [
+  {
+    id: 1,
+    name: 'workstation',
+    base_url: 'http://192.0.2.10:11434',
+    backend_type: 'ollama',
+    auth_header: null,
+    static_models: null,
+    health_path: null,
+    timeout_seconds: 900,
+    enabled: true,
+    source: 'api',
+    created_at: '2026-07-01T00:00:00Z',
+    updated_at: '2026-07-01T00:00:00Z',
+    health: 'healthy',
+    models: ['llama3.1:8b', 'qwen3-coder:30b'],
+    last_checked_at: '2026-07-07T10:00:00Z',
+  },
+  {
+    id: 2,
+    name: 'cloud',
+    base_url: 'https://api.example.com',
+    backend_type: 'openai_compat',
+    auth_header: 'Bearer sk-…abcd',
+    static_models: ['gpt-4o-mini'],
+    health_path: '/healthz',
+    timeout_seconds: null,
+    enabled: true,
+    source: 'api',
+    created_at: '2026-07-02T00:00:00Z',
+    updated_at: '2026-07-05T00:00:00Z',
+    health: 'unhealthy',
+    models: [],
+    last_error: 'dial tcp: connection refused',
+    last_checked_at: '2026-07-07T10:00:05Z',
+  },
+  {
+    id: 3,
+    name: 'default',
+    base_url: 'http://ollama.local:11434',
+    backend_type: 'ollama',
+    auth_header: null,
+    static_models: null,
+    health_path: null,
+    timeout_seconds: null,
+    enabled: true,
+    source: 'config',
+    created_at: '2026-06-01T00:00:00Z',
+    updated_at: '2026-06-01T00:00:00Z',
+    health: 'unknown',
+    models: [],
+    last_checked_at: null,
+  },
+];
+
+const configSourcedNodeError = {
+  error: {
+    code: 'config_sourced_node',
+    type: 'invalid_request_error',
+    message:
+      'Node is managed by the nodes config file (NODES_FILE); edit the file instead',
+  },
+};
+
 // BE 5 — bare objects (no envelope). Mirrors the shapes the Go handler
 // encodes in internal/admin/config_health.go.
 const adminConfig = {
@@ -218,6 +284,21 @@ const adminHealthOk = {
   },
   uptime_seconds: 12345,
   version: 'abc1234',
+  nodes: [
+    {
+      name: 'workstation',
+      health: 'healthy',
+      last_checked_at: '2026-07-07T10:00:00Z',
+      model_count: 2,
+    },
+    {
+      name: 'cloud',
+      health: 'unhealthy',
+      last_error: 'dial tcp: connection refused',
+      last_checked_at: '2026-07-07T10:00:05Z',
+      model_count: 0,
+    },
+  ],
 };
 
 const adminHealthDegraded = {
@@ -434,6 +515,74 @@ const server = createServer(async (req, res) => {
   }
   if (adminPath === '/usage/timeseries' && method === 'GET') {
     return json(res, 200, { data: usageTimeseries });
+  }
+
+  // Nodes (Distributed Nodes FE-1). `{data}` envelope everywhere;
+  // config-sourced node (id 3) rejects mutations with 409.
+  if (adminPath === '/nodes' && method === 'GET') {
+    return json(res, 200, envelope(nodesFixture, url));
+  }
+  if (adminPath === '/nodes' && method === 'POST') {
+    const body = await readJson(req).catch(() => ({}));
+    return json(res, 201, {
+      data: {
+        id: 9,
+        name: body?.name ?? 'new-node',
+        base_url: body?.base_url ?? 'http://new-node:11434',
+        backend_type: body?.backend_type ?? 'ollama',
+        auth_header: body?.auth_header ? 'Bearer sk-…mask' : null,
+        static_models: body?.static_models ?? null,
+        health_path: body?.health_path ?? null,
+        timeout_seconds: body?.timeout_seconds ?? null,
+        enabled: true,
+        source: 'api',
+        created_at: '2026-07-07T12:00:00Z',
+        updated_at: '2026-07-07T12:00:00Z',
+        health: 'healthy',
+        models: body?.static_models ?? ['llama3.1:8b'],
+        last_checked_at: '2026-07-07T12:00:00Z',
+      },
+    });
+  }
+  {
+    const nodeMatch = /^\/nodes\/(\d+)(\/refresh)?$/.exec(adminPath);
+    if (nodeMatch) {
+      const node = nodesFixture.find((n) => String(n.id) === nodeMatch[1]);
+      if (!node) {
+        return json(res, 404, {
+          error: {
+            code: 'node_not_found',
+            type: 'invalid_request_error',
+            message: 'Unknown node id',
+          },
+        });
+      }
+      if (nodeMatch[2] && method === 'POST') {
+        return json(res, 200, {
+          data: {
+            ...node,
+            health: 'healthy',
+            last_error: undefined,
+            last_checked_at: '2026-07-07T12:34:56Z',
+          },
+        });
+      }
+      if (!nodeMatch[2] && method === 'GET') {
+        return json(res, 200, { data: node });
+      }
+      if (!nodeMatch[2] && (method === 'PUT' || method === 'DELETE')) {
+        if (node.source === 'config') {
+          return json(res, 409, configSourcedNodeError);
+        }
+        if (method === 'DELETE') {
+          res.writeHead(204);
+          return res.end();
+        }
+        return json(res, 200, {
+          data: { ...node, updated_at: '2026-07-07T12:30:00Z' },
+        });
+      }
+    }
   }
 
   // Config + health (BE 5). Both return bare objects (no envelope).
