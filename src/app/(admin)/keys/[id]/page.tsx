@@ -18,6 +18,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { DetailErrorState } from '@/components/data';
 import { FormField } from '@/components/forms';
 import { FormSkeleton } from '@/components/loading';
 import { useMinDuration } from '@/lib/utils/useMinDuration';
@@ -61,23 +62,16 @@ export default function KeyDetailPage() {
   }
 
   if (detail.isError) {
-    const is404 =
-      detail.error instanceof ApiError && detail.error.status === 404;
     return (
       <Container maxW="4xl" paddingBlock="8" paddingInline="6">
-        <Stack gap="3">
-          <Heading textStyle="heading.md">
-            {is404 ? 'Key not found' : 'Failed to load key'}
-          </Heading>
-          <Text color="fg.muted">
-            {detail.error instanceof Error
-              ? detail.error.message
-              : 'Unknown error.'}
-          </Text>
-          <ChakraLink asChild>
-            <NextLink href="/keys">Back to keys</NextLink>
-          </ChakraLink>
-        </Stack>
+        <DetailErrorState
+          resourceLabel="Key"
+          resourceId={id}
+          error={detail.error}
+          backHref="/keys"
+          backLabel="Back to keys"
+          data-testid="key-detail-error"
+        />
       </Container>
     );
   }

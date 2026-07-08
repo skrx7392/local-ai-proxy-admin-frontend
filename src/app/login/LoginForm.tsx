@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn } from 'next-auth/react';
-import { Button, Card, Field, Input, Stack, Text } from '@chakra-ui/react';
+import { Alert, Button, Card, Field, Input, Stack, Text } from '@chakra-ui/react';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -25,6 +25,9 @@ export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = sanitizeCallback(searchParams.get('callbackUrl'));
+  // Set by the expiry paths (TopBar countdown, apiFetch 401, middleware) so
+  // the user knows why they were signed out.
+  const sessionExpired = searchParams.get('expired') === '1';
   const [serverError, setServerError] = useState<string | null>(null);
 
   const {
@@ -53,6 +56,17 @@ export function LoginForm() {
             <Text textStyle="body.sm" color="fg.muted">
               Admin console for local-ai-proxy.
             </Text>
+
+            {sessionExpired && (
+              <Alert.Root status="warning" data-testid="login-expired">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Description textStyle="body.sm">
+                    Your session has expired. Sign in again to continue.
+                  </Alert.Description>
+                </Alert.Content>
+              </Alert.Root>
+            )}
 
             <Field.Root invalid={Boolean(errors.email)}>
               <Field.Label>Email</Field.Label>

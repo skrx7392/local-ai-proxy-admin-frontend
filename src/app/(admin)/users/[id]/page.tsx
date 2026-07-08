@@ -17,6 +17,7 @@ import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 
+import { DetailErrorState } from '@/components/data';
 import { FormSkeleton } from '@/components/loading';
 import { useMinDuration } from '@/lib/utils/useMinDuration';
 import { ApiError } from '@/lib/api/errors';
@@ -56,23 +57,16 @@ export default function UserDetailPage() {
   }
 
   if (detail.isError) {
-    const is404 =
-      detail.error instanceof ApiError && detail.error.status === 404;
     return (
       <Container maxW="4xl" paddingBlock="8" paddingInline="6">
-        <Stack gap="3">
-          <Heading textStyle="heading.md">
-            {is404 ? 'User not found' : 'Failed to load user'}
-          </Heading>
-          <Text color="fg.muted">
-            {detail.error instanceof Error
-              ? detail.error.message
-              : 'Unknown error.'}
-          </Text>
-          <ChakraLink asChild>
-            <NextLink href="/users">Back to users</NextLink>
-          </ChakraLink>
-        </Stack>
+        <DetailErrorState
+          resourceLabel="User"
+          resourceId={id}
+          error={detail.error}
+          backHref="/users"
+          backLabel="Back to users"
+          data-testid="user-detail-error"
+        />
       </Container>
     );
   }

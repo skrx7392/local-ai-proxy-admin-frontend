@@ -8,3 +8,5 @@ export { EmptyState } from './EmptyState';
 export type { EmptyStateProps } from './EmptyState';
 export { QueryErrorState } from './QueryErrorState';
 export type { QueryErrorStateProps } from './QueryErrorState';
+export { DetailErrorState } from './DetailErrorState';
+export type { DetailErrorStateProps } from './DetailErrorState';

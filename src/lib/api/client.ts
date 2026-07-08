@@ -1,5 +1,7 @@
 import { signOut } from 'next-auth/react';
 
+import { sessionExpiredLoginUrl } from '@/lib/auth/sessionExpiry';
+
 import { ApiError } from './errors';
 
 export type ApiFetchOptions = {
@@ -33,9 +35,11 @@ let sessionExpiredInFlight = false;
 function handleSessionExpired(): void {
   if (typeof window === 'undefined' || sessionExpiredInFlight) return;
   sessionExpiredInFlight = true;
-  const callbackUrl = `/login?callbackUrl=${encodeURIComponent(
+  // `expired=1` tells the login page to explain WHY the user landed there
+  // ("Your session has expired") instead of looking like a random logout.
+  const callbackUrl = sessionExpiredLoginUrl(
     window.location.pathname + window.location.search,
-  )}`;
+  );
   // Fire-and-forget; signOut triggers events.signOut (best-effort backend
   // logout) then navigates the browser to /login.
   void signOut({ callbackUrl, redirect: true });
