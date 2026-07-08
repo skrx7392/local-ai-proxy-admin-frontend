@@ -61,13 +61,20 @@ export default function UsagePage() {
   const limit = readInt(searchParams, 'limit', 25);
   const offset = readInt(searchParams, 'offset', 0);
 
+  // When the URL has no since/until, the readers fall back to a quick-pick
+  // range anchored at "now". Pin that anchor once per mount (mirrors the
+  // Dashboard): re-deriving it on every searchParams change minted a new
+  // millisecond-different range per tab switch, which invalidated the query
+  // key and refetched + re-skeletoned every tab entry.
+  const defaultNow = useMemo(() => new Date(), []);
+
   const filters = useMemo(
-    () => readUsageFiltersFromUrl(searchParams),
-    [searchParams],
+    () => readUsageFiltersFromUrl(searchParams, { now: defaultNow }),
+    [searchParams, defaultNow],
   );
   const timeseriesFilters = useMemo(
-    () => readTimeseriesFiltersFromUrl(searchParams),
-    [searchParams],
+    () => readTimeseriesFiltersFromUrl(searchParams, { now: defaultNow }),
+    [searchParams, defaultNow],
   );
 
   return (
