@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { auth } from '@/lib/auth/options';
+import { isSessionCookieName } from '@/lib/auth/sessionExpiry';
 import { buildCsp, generateNonce } from '@/lib/security/csp';
 
 const PUBLIC_PATHS = new Set<string>(['/login', '/api/health']);
@@ -41,6 +42,14 @@ export default auth((req) => {
   if (!req.auth) {
     const loginUrl = new URL('/login', req.nextUrl);
     loginUrl.searchParams.set('callbackUrl', pathname + search);
+    // A session cookie that no longer validates (backend token expired → the
+    // jwt callback returned null, or an undecryptable cookie) means the user
+    // HAD a session. Flag it so the login page explains the signout instead
+    // of silently presenting a bare form.
+    const hadSession = req.cookies
+      .getAll()
+      .some((cookie) => isSessionCookieName(cookie.name));
+    if (hadSession) loginUrl.searchParams.set('expired', '1');
     return NextResponse.redirect(loginUrl);
   }
 

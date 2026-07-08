@@ -134,7 +134,8 @@ describe('apiFetch', () => {
     expect(signOutMock).toHaveBeenCalledTimes(1);
     const arg = signOutMock.mock.calls[0]![0];
     expect(arg).toMatchObject({ redirect: true });
-    expect(arg.callbackUrl).toMatch(/^\/login\?callbackUrl=/);
+    // expired=1 tells the login page to explain the signout (UX P2).
+    expect(arg.callbackUrl).toMatch(/^\/login\?expired=1&callbackUrl=/);
   });
 
   it('returns the parsed body when the status is in allowedStatuses', async () => {
