@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Flex, Spacer, Text } from '@chakra-ui/react';
-import { getSession, signOut, useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 import {
   SESSION_EXPIRY_WARNING_SECONDS,
@@ -23,6 +23,23 @@ function formatCountdown(seconds: number): string {
 
 function currentPath(): string {
   return window.location.pathname + window.location.search;
+}
+
+// Asks the server whether the session is still alive. Resolves `false` ONLY
+// when the server explicitly reports no session; throws on transport/HTTP
+// errors so the caller retries instead of treating a glitch as expiry.
+//
+// Deliberately a raw fetch rather than next-auth's getSession(): that helper
+// (a) swallows fetch/non-2xx/JSON errors into `null` — indistinguishable from
+// authoritative expiry, so a blip on /api/auth/session would log out a
+// still-valid session — and (b) broadcasts a session event that makes
+// SessionProvider refetch and flip `useSession` to unauthenticated
+// mid-verification, which would disable the retry path below.
+async function serverSessionAlive(): Promise<boolean> {
+  const res = await fetch('/api/auth/session', { credentials: 'same-origin' });
+  if (!res.ok) throw new Error(`session probe failed: ${res.status}`);
+  const body: unknown = await res.json();
+  return body !== null && typeof body === 'object' && Object.keys(body).length > 0;
 }
 
 export function TopBar() {
@@ -62,8 +79,7 @@ export function TopBar() {
     expiryCheckInFlight.current = true;
     void (async () => {
       try {
-        const fresh = await getSession();
-        if (fresh) {
+        if (await serverSessionAlive()) {
           // Client clock ahead of the server — session is still honored.
           // Re-verify every 30s until the server really invalidates it.
           nextExpiryCheckAt.current = Math.floor(Date.now() / 1000) + 30;
