@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Box, Button, Flex, Spacer, Text } from '@chakra-ui/react';
-import { signOut, useSession } from 'next-auth/react';
+import { getSession, signOut, useSession } from 'next-auth/react';
 
 import {
   SESSION_EXPIRY_WARNING_SECONDS,
@@ -28,9 +28,12 @@ function currentPath(): string {
 export function TopBar() {
   const { data: session, status } = useSession();
   const [now, setNow] = useState(() => Math.floor(Date.now() / 1000));
-  // The expiry signOut must fire exactly once — the interval keeps ticking
-  // (and re-running the effect) until the redirect actually happens.
-  const expiredSignOutFired = useRef(false);
+  // Serializes expiry verification: one in-flight check at a time, and a
+  // client-clock timestamp before which the ticking effect must not re-check
+  // (backoff for clock skew / transient failures). Deliberately NOT a
+  // permanent latch — a failed signOut must be retried, not swallowed.
+  const expiryCheckInFlight = useRef(false);
+  const nextExpiryCheckAt = useRef(0);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Math.floor(Date.now() / 1000)), 1000);
@@ -46,15 +49,42 @@ export function TopBar() {
 
   // Defined expiry behavior (UX P2 2026-07-08): when the countdown hits zero,
   // don't sit on a dead session waiting for the next API call to 401 — sign
-  // out immediately and land on /login with a "session expired" explanation.
+  // out and land on /login with a "session expired" explanation.
+  //
+  // The countdown runs on the CLIENT clock, so it only decides when to ASK;
+  // the server decides whether the session is actually gone. On a workstation
+  // whose clock runs ahead, getSession() still returns a session (the jwt
+  // callback hasn't nulled it), and we back off instead of bouncing a valid
+  // user to /login.
   useEffect(() => {
-    if (!isExpired || expiredSignOutFired.current) return;
-    expiredSignOutFired.current = true;
-    void signOut({
-      callbackUrl: sessionExpiredLoginUrl(currentPath()),
-      redirect: true,
-    });
-  }, [isExpired]);
+    if (!isExpired || expiryCheckInFlight.current) return;
+    if (now < nextExpiryCheckAt.current) return;
+    expiryCheckInFlight.current = true;
+    void (async () => {
+      try {
+        const fresh = await getSession();
+        if (fresh) {
+          // Client clock ahead of the server — session is still honored.
+          // Re-verify every 30s until the server really invalidates it.
+          nextExpiryCheckAt.current = Math.floor(Date.now() / 1000) + 30;
+          return;
+        }
+        await signOut({
+          callbackUrl: sessionExpiredLoginUrl(currentPath()),
+          redirect: true,
+        });
+        // signOut resolved — navigation is imminent; don't fire again while
+        // the browser unloads the page.
+        nextExpiryCheckAt.current = Number.MAX_SAFE_INTEGER;
+      } catch {
+        // Transient failure (session fetch or signout round-trip) — retry on
+        // a later tick instead of leaving the expired page stuck.
+        nextExpiryCheckAt.current = Math.floor(Date.now() / 1000) + 5;
+      } finally {
+        expiryCheckInFlight.current = false;
+      }
+    })();
+  }, [isExpired, now]);
 
   if (status !== 'authenticated' || !session?.user) return null;
 

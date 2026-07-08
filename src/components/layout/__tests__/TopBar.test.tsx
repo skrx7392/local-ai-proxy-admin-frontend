@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { system } from '@/theme';
 
 const signOutMock = vi.fn();
+const getSessionMock = vi.fn();
 
 type MockSession = {
   data: {
@@ -20,6 +21,7 @@ let mockSession: MockSession;
 vi.mock('next-auth/react', () => ({
   useSession: () => mockSession,
   signOut: (...args: unknown[]) => signOutMock(...args),
+  getSession: (...args: unknown[]) => getSessionMock(...args),
 }));
 
 // Children with their own data/router dependencies are out of scope here —
@@ -48,6 +50,9 @@ function wrap(ui: ReactNode) {
 describe('<TopBar /> session timer', () => {
   beforeEach(() => {
     signOutMock.mockReset();
+    getSessionMock.mockReset();
+    // Default: the server agrees the session is gone.
+    getSessionMock.mockResolvedValue(null);
   });
 
   it('labels the countdown so it reads as a session timer, with no warning far from expiry', () => {
@@ -91,6 +96,9 @@ describe('<TopBar /> session timer', () => {
     const { getByTestId, queryByTestId } = wrap(<TopBar />);
 
     await waitFor(() => expect(signOutMock).toHaveBeenCalledTimes(1));
+    // The server was consulted first — expiry is never decided by the
+    // client clock alone.
+    expect(getSessionMock).toHaveBeenCalled();
     const arg = signOutMock.mock.calls[0]![0] as {
       callbackUrl: string;
       redirect: boolean;
@@ -101,6 +109,40 @@ describe('<TopBar /> session timer', () => {
     // Timer reads "expired"; the pre-expiry warning banner is gone.
     expect(getByTestId('topbar-expires').textContent).toContain('expired');
     expect(queryByTestId('session-expiry-banner')).toBeNull();
+  });
+
+  it('does not sign out on a skewed client clock while the server still honors the session', async () => {
+    // Client clock says expired, but getSession() (server authority) still
+    // returns a session — e.g. the workstation clock runs a minute ahead.
+    getSessionMock.mockResolvedValue({
+      user: { id: '1', email: 'admin@kinvee.in', role: 'admin' },
+      expires: new Date(Date.now() + 60 * 1000).toISOString(),
+    });
+    mockSession = authenticatedIn(-5);
+    wrap(<TopBar />);
+
+    await waitFor(() => expect(getSessionMock).toHaveBeenCalledTimes(1));
+    expect(signOutMock).not.toHaveBeenCalled();
+  });
+
+  it('retries the expiry redirect after a transient signOut failure', async () => {
+    vi.useFakeTimers();
+    try {
+      signOutMock.mockRejectedValueOnce(new Error('network blip'));
+      signOutMock.mockResolvedValue(undefined);
+      mockSession = authenticatedIn(-5);
+      wrap(<TopBar />);
+
+      // First attempt fires on mount and fails.
+      await vi.waitFor(() => expect(signOutMock).toHaveBeenCalledTimes(1));
+      // The guard must not latch: after the 5s backoff a later tick retries,
+      // and the successful retry latches (navigation imminent) — exactly one
+      // more call, no per-tick spam.
+      await vi.advanceTimersByTimeAsync(10_000);
+      await vi.waitFor(() => expect(signOutMock).toHaveBeenCalledTimes(2));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('renders nothing when unauthenticated', () => {
