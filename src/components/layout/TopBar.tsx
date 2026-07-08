@@ -26,8 +26,10 @@ function currentPath(): string {
 }
 
 // Asks the server whether the session is still alive. Resolves `false` ONLY
-// when the server explicitly reports no session; throws on transport/HTTP
-// errors so the caller retries instead of treating a glitch as expiry.
+// when the server explicitly reports no session (next-auth answers `null`);
+// resolves `true` for a valid session shape; throws on everything else
+// (transport/HTTP errors AND malformed 200 bodies) so the caller retries
+// instead of treating a glitch as expiry.
 //
 // Deliberately a raw fetch rather than next-auth's getSession(): that helper
 // (a) swallows fetch/non-2xx/JSON errors into `null` — indistinguishable from
@@ -39,7 +41,19 @@ async function serverSessionAlive(): Promise<boolean> {
   const res = await fetch('/api/auth/session', { credentials: 'same-origin' });
   if (!res.ok) throw new Error(`session probe failed: ${res.status}`);
   const body: unknown = await res.json();
-  return body !== null && typeof body === 'object' && Object.keys(body).length > 0;
+  // Explicit "no session" — the only signal that authorizes sign-out.
+  if (body === null) return false;
+  // A valid next-auth session is an object carrying `user` and/or `expires`.
+  if (
+    typeof body === 'object' &&
+    !Array.isArray(body) &&
+    ('user' in body || 'expires' in body)
+  ) {
+    return true;
+  }
+  // Anything else (`{}`, `[]`, a primitive) is a malformed response, not an
+  // authoritative expiry — route it through the retry backoff.
+  throw new Error('session probe returned an unrecognized body');
 }
 
 export function TopBar() {

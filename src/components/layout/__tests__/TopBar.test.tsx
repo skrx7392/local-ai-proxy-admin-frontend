@@ -152,6 +152,23 @@ describe('<TopBar /> session timer', () => {
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
+  it('does not treat a malformed 200 probe body as expiry', async () => {
+    // HTTP 200 with `{}` / `[]` / a primitive is malformed, not an
+    // authoritative no-session — it must route through the retry backoff,
+    // never sign the user out.
+    for (const malformed of [{}, [], 'nope', 0] as const) {
+      signOutMock.mockReset();
+      fetchMock.mockReset();
+      fetchMock.mockImplementation(async () => sessionProbeResponse(malformed));
+      mockSession = authenticatedIn(-5);
+      const { unmount } = wrap(<TopBar />);
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+      expect(signOutMock).not.toHaveBeenCalled();
+      unmount();
+    }
+  });
+
   it('retries the expiry redirect after a transient signOut failure', async () => {
     vi.useFakeTimers();
     try {
