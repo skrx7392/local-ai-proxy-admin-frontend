@@ -1,19 +1,12 @@
 'use client';
 
-import {
-  Button,
-  Dialog,
-  Field,
-  HStack,
-  Portal,
-  Stack,
-  Text,
-} from '@chakra-ui/react';
+import { Button, Dialog, Field, HStack, Portal, Stack, Text } from '@chakra-ui/react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
 import { FormField, FormSelect } from '@/components/forms';
+import { useHeldValue } from '@/lib/hooks/useHeldValue';
 
 import {
   NodeFormSchema,
@@ -95,11 +88,17 @@ export function NodeFormDialog({
   }
 
   // useWatch (not `watch`) — subscription-based, safe under React Compiler.
-  const authMode = (useWatch({ control, name: 'auth_mode' }) ??
-    'keep') as AuthMode;
+  const authMode = (useWatch({ control, name: 'auth_mode' }) ?? 'keep') as AuthMode;
   const enabled = useWatch({ control, name: 'enabled' }) ?? true;
 
   const submit = handleSubmit((values) => onSubmit(values));
+
+  // The page nulls `editing` in the same update that closes the dialog. Hold
+  // it so the entire create/edit form structure (title, auth-mode control,
+  // status toggle, submit label) doesn't swap mid-exit-animation. See
+  // useHeldValue. The closed→open reset above intentionally keeps reading the
+  // raw `editing` prop — at that transition the held value equals it.
+  const editingShown = useHeldValue(isOpen, editing);
 
   return (
     <Dialog.Root
@@ -112,12 +111,10 @@ export function NodeFormDialog({
           <Dialog.Content data-testid="node-form-dialog">
             <form onSubmit={submit} noValidate>
               <Dialog.Header>
-                <Dialog.Title>
-                  {editing ? 'Edit node' : 'Register node'}
-                </Dialog.Title>
+                <Dialog.Title>{editingShown ? 'Edit node' : 'Register node'}</Dialog.Title>
                 <Dialog.Description>
-                  The gateway probes the node as soon as you save, so health
-                  and discovered models are live in the response.
+                  The gateway probes the node as soon as you save, so health and discovered models
+                  are live in the response.
                 </Dialog.Description>
               </Dialog.Header>
               <Dialog.Body>
@@ -129,7 +126,7 @@ export function NodeFormDialog({
                     placeholder="e.g. workstation"
                     errorMessage={errors.name?.message}
                     required
-                    autoFocus={!editing}
+                    autoFocus={!editingShown}
                     data-testid="node-name"
                   />
                   <FormField
@@ -151,47 +148,43 @@ export function NodeFormDialog({
                     data-testid="node-backend-type"
                   />
 
-                  {editing ? (
+                  {editingShown ? (
                     <Field.Root invalid={Boolean(errors.auth_header)}>
                       <Field.Label>Authorization header</Field.Label>
                       <Text textStyle="body.sm" color="fg.muted">
-                        {editing.auth_header
-                          ? `Current: ${editing.auth_header}`
+                        {editingShown.auth_header
+                          ? `Current: ${editingShown.auth_header}`
                           : 'No auth header configured.'}
                       </Text>
                       <HStack gap="1" data-testid="node-auth-mode">
-                        {(Object.keys(AUTH_MODE_LABEL) as AuthMode[]).map(
-                          (mode) => (
-                            <Button
-                              key={mode}
-                              type="button"
-                              size="xs"
-                              variant={authMode === mode ? 'solid' : 'outline'}
-                              onClick={() =>
-                                setValue('auth_mode', mode, {
-                                  shouldValidate: true,
-                                })
-                              }
-                              data-testid={`node-auth-mode-${mode}`}
-                            >
-                              {AUTH_MODE_LABEL[mode]}
-                            </Button>
-                          ),
-                        )}
+                        {(Object.keys(AUTH_MODE_LABEL) as AuthMode[]).map((mode) => (
+                          <Button
+                            key={mode}
+                            type="button"
+                            size="xs"
+                            variant={authMode === mode ? 'solid' : 'outline'}
+                            onClick={() =>
+                              setValue('auth_mode', mode, {
+                                shouldValidate: true,
+                              })
+                            }
+                            data-testid={`node-auth-mode-${mode}`}
+                          >
+                            {AUTH_MODE_LABEL[mode]}
+                          </Button>
+                        ))}
                       </HStack>
                       {Boolean(errors.auth_header) && (
-                        <Field.ErrorText>
-                          {errors.auth_header?.message}
-                        </Field.ErrorText>
+                        <Field.ErrorText>{errors.auth_header?.message}</Field.ErrorText>
                       )}
                     </Field.Root>
                   ) : null}
 
-                  {(!editing || authMode === 'replace') && (
+                  {(!editingShown || authMode === 'replace') && (
                     <FormField
                       name="auth_header"
                       label={
-                        editing
+                        editingShown
                           ? 'New authorization header'
                           : 'Authorization header (optional)'
                       }
@@ -211,7 +204,7 @@ export function NodeFormDialog({
                     register={register}
                     placeholder="gpt-4o-mini, gpt-4o"
                     helperText={
-                      editing
+                      editingShown
                         ? 'Comma-separated. Empty switches back to automatic discovery.'
                         : 'Comma-separated. Leave empty for automatic discovery.'
                     }
@@ -238,7 +231,7 @@ export function NodeFormDialog({
                     data-testid="node-timeout-seconds"
                   />
 
-                  {editing ? (
+                  {editingShown ? (
                     <Field.Root>
                       <Field.Label>Status</Field.Label>
                       <HStack gap="1" data-testid="node-enabled-toggle">
@@ -262,8 +255,8 @@ export function NodeFormDialog({
                         </Button>
                       </HStack>
                       <Field.HelperText>
-                        Enabling a previously disabled node puts it back into
-                        routing after its next successful probe.
+                        Enabling a previously disabled node puts it back into routing after its next
+                        successful probe.
                       </Field.HelperText>
                     </Field.Root>
                   ) : null}
@@ -295,7 +288,7 @@ export function NodeFormDialog({
                   loading={isSubmitting}
                   data-testid="node-submit"
                 >
-                  {editing ? 'Save' : 'Register'}
+                  {editingShown ? 'Save' : 'Register'}
                 </Button>
               </Dialog.Footer>
             </form>

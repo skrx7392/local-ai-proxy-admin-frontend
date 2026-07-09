@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { FormField } from '@/components/forms';
+import { useHeldValue } from '@/lib/hooks/useHeldValue';
 
 import {
   PricingFormSchema,
@@ -81,6 +82,11 @@ export function PricingFormDialog({
 
   const submit = handleSubmit((values) => onSubmit(values));
 
+  // The page nulls `editing` in the same update that closes the dialog. Hold
+  // it so the title/locked-field don't swap to the "create" variant during the
+  // exit animation (a visible flash). See useHeldValue.
+  const editingShown = useHeldValue(isOpen, editing);
+
   return (
     <Dialog.Root
       open={isOpen}
@@ -92,12 +98,9 @@ export function PricingFormDialog({
           <Dialog.Content data-testid="pricing-form-dialog">
             <form onSubmit={submit} noValidate>
               <Dialog.Header>
-                <Dialog.Title>
-                  {editing ? 'Edit pricing' : 'New pricing'}
-                </Dialog.Title>
+                <Dialog.Title>{editingShown ? 'Edit pricing' : 'New pricing'}</Dialog.Title>
                 <Dialog.Description>
-                  Rates are credits per 1M tokens, stored to 6 decimal
-                  places.
+                  Rates are credits per 1M tokens, stored to 6 decimal places.
                 </Dialog.Description>
               </Dialog.Header>
               <Dialog.Body>
@@ -109,8 +112,8 @@ export function PricingFormDialog({
                     placeholder="e.g. llama3.1:8b"
                     errorMessage={errors.model_id?.message}
                     required
-                    autoFocus={!editing}
-                    disabled={!!editing}
+                    autoFocus={!editingShown}
+                    disabled={!!editingShown}
                     data-testid="pricing-model-id"
                   />
                   <FormField
@@ -172,7 +175,7 @@ export function PricingFormDialog({
                   loading={isSubmitting}
                   data-testid="pricing-submit"
                 >
-                  {editing ? 'Save' : 'Create'}
+                  {editingShown ? 'Save' : 'Create'}
                 </Button>
               </Dialog.Footer>
             </form>

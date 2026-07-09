@@ -1,17 +1,10 @@
 'use client';
 
-import {
-  Box,
-  Button,
-  Dialog,
-  HStack,
-  IconButton,
-  Portal,
-  Text,
-  VStack,
-} from '@chakra-ui/react';
+import { Box, Button, Dialog, HStack, IconButton, Portal, Text, VStack } from '@chakra-ui/react';
 import { Check, Copy } from 'lucide-react';
 import { useState } from 'react';
+
+import { useHeldValue } from '@/lib/hooks/useHeldValue';
 
 export interface OneTimeSecretDialogProps {
   isOpen: boolean;
@@ -54,6 +47,12 @@ export function OneTimeSecretDialog({
     setCopied(false);
     setAcknowledged(false);
   }
+
+  // The page nulls `secret` in the same update that closes the dialog. Hold
+  // it so the mono value box doesn't blank out during the exit animation. The
+  // reset-on-new-secret logic above intentionally tracks the raw prop. See
+  // useHeldValue.
+  const secretShown = useHeldValue(isOpen, secret);
 
   async function handleCopy(): Promise<void> {
     if (!secret) return;
@@ -99,7 +98,7 @@ export function OneTimeSecretDialog({
                     wordBreak="break-all"
                     data-testid="one-time-secret-value"
                   >
-                    {secret ?? ''}
+                    {secretShown ?? ''}
                   </Box>
                   <IconButton
                     aria-label={copied ? 'Copied' : 'Copy to clipboard'}
@@ -107,7 +106,7 @@ export function OneTimeSecretDialog({
                     variant="ghost"
                     onClick={handleCopy}
                     data-testid="one-time-secret-copy"
-                    disabled={!secret}
+                    disabled={!secretShown}
                   >
                     {copied ? <Check size={16} /> : <Copy size={16} />}
                   </IconButton>
@@ -119,9 +118,7 @@ export function OneTimeSecretDialog({
                     onChange={(event) => setAcknowledged(event.target.checked)}
                     data-testid="one-time-secret-ack"
                   />
-                  <Text textStyle="body.sm">
-                    I&apos;ve saved this somewhere safe.
-                  </Text>
+                  <Text textStyle="body.sm">I&apos;ve saved this somewhere safe.</Text>
                 </HStack>
               </VStack>
             </Dialog.Body>

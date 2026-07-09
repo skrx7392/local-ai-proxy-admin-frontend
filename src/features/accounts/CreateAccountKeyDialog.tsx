@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { FormField } from '@/components/forms';
+import { useHeldValue } from '@/lib/hooks/useHeldValue';
 
 import {
   AccountKeyFormSchema,
@@ -49,6 +50,11 @@ export function CreateAccountKeyDialog({
 
   const submit = handleSubmit((values) => onSubmit(values));
 
+  // The page nulls `accountName` in the same update that closes the dialog.
+  // Hold it so the description doesn't fall back to the generic copy during
+  // the exit animation. See useHeldValue.
+  const accountNameShown = useHeldValue(isOpen, accountName);
+
   return (
     <Dialog.Root
       open={isOpen}
@@ -62,8 +68,8 @@ export function CreateAccountKeyDialog({
               <Dialog.Header>
                 <Dialog.Title>Create account-scoped key</Dialog.Title>
                 <Dialog.Description>
-                  {accountName
-                    ? `The key charges against ${accountName}'s credit balance.`
+                  {accountNameShown
+                    ? `The key charges against ${accountNameShown}'s credit balance.`
                     : 'The key charges against this account.'}
                 </Dialog.Description>
               </Dialog.Header>
