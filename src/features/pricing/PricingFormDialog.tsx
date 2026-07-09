@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { FormField } from '@/components/forms';
+import { FormField, FormMoney } from '@/components/forms';
 import { useHeldValue } from '@/lib/hooks/useHeldValue';
 
 import {
@@ -53,6 +53,7 @@ export function PricingFormDialog({
 }: PricingFormDialogProps) {
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors },
@@ -100,7 +101,7 @@ export function PricingFormDialog({
               <Dialog.Header>
                 <Dialog.Title>{editingShown ? 'Edit pricing' : 'New pricing'}</Dialog.Title>
                 <Dialog.Description>
-                  Rates are credits per 1M tokens, stored to 6 decimal places.
+                  Rates are in USD per 1M tokens, stored to 6 decimal places.
                 </Dialog.Description>
               </Dialog.Header>
               <Dialog.Body>
@@ -116,24 +117,22 @@ export function PricingFormDialog({
                     disabled={!!editingShown}
                     data-testid="pricing-model-id"
                   />
-                  <FormField
+                  <FormMoney
                     name="prompt_rate_per_mtok"
-                    label="Prompt rate (credits / 1M tokens)"
-                    register={register}
-                    type="number"
-                    step="0.000001"
-                    placeholder="5.00"
+                    label="Prompt rate (per 1M tokens)"
+                    control={control}
+                    storeUnit="dollars"
+                    placeholder="0.20"
                     errorMessage={errors.prompt_rate_per_mtok?.message}
                     required
                     data-testid="pricing-prompt-rate"
                   />
-                  <FormField
+                  <FormMoney
                     name="completion_rate_per_mtok"
-                    label="Completion rate (credits / 1M tokens)"
-                    register={register}
-                    type="number"
-                    step="0.000001"
-                    placeholder="15.00"
+                    label="Completion rate (per 1M tokens)"
+                    control={control}
+                    storeUnit="dollars"
+                    placeholder="0.40"
                     errorMessage={errors.completion_rate_per_mtok?.message}
                     required
                     data-testid="pricing-completion-rate"
@@ -144,7 +143,7 @@ export function PricingFormDialog({
                     register={register}
                     type="number"
                     placeholder="500"
-                    helperText="Used when reserving credits before a response lands."
+                    helperText="Used when reserving funds before a response lands."
                     errorMessage={errors.typical_completion?.message}
                     data-testid="pricing-typical-completion"
                   />

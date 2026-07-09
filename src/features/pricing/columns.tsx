@@ -5,10 +5,13 @@ import type { ColumnDef } from '@tanstack/react-table';
 
 import type { Pricing } from './schemas';
 
-// Rates are credits per 1M tokens (per-MTok) since backend PR #54 — the
-// wire value is already the human-scale number, so display it as-is
-// (no unit conversion). Up to 6 decimals matches backend storage.
+// Rates are stored per 1M tokens (per-MTok) since backend PR #54. The ledger
+// unit is "credits", but the whole app renders credits as USD at 1 credit =
+// $1 (account balances, grants, usage all use the same convention), so show
+// the rate as a dollar amount. Up to 6 decimals matches backend storage.
 const perMtok = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
   minimumFractionDigits: 2,
   maximumFractionDigits: 6,
 });
@@ -39,7 +42,7 @@ export function buildPricingColumns(options: {
         <VStack align="flex-start" gap="0">
           <Text>{perMtok.format(row.original.prompt_rate_per_mtok)}</Text>
           <Text fontSize="xs" color="fg.muted">
-            credits / 1M tokens
+            per 1M tokens
           </Text>
         </VStack>
       ),
@@ -53,7 +56,7 @@ export function buildPricingColumns(options: {
             {perMtok.format(row.original.completion_rate_per_mtok)}
           </Text>
           <Text fontSize="xs" color="fg.muted">
-            credits / 1M tokens
+            per 1M tokens
           </Text>
         </VStack>
       ),

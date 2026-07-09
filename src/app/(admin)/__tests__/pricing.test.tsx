@@ -178,6 +178,23 @@ describe('/pricing — outlier rate confirmation', () => {
   });
 });
 
+describe('/pricing — rates render in USD', () => {
+  useMockBackend();
+
+  it('formats prompt and completion rates as USD per 1M tokens', async () => {
+    const { findByText, findAllByText } = wrap(<PricingPage />);
+
+    // llama3.1:8b fixture: prompt 50, completion 150 credits/MTok, now shown
+    // as dollars (1 credit = $1, matching the rest of the app).
+    await findByText('$50.00');
+    await findByText('$150.00');
+
+    // Each rate cell is captioned "per 1M tokens" (no "credits" wording).
+    const captions = await findAllByText('per 1M tokens');
+    expect(captions.length).toBeGreaterThan(0);
+  });
+});
+
 describe('/pricing — models serving without pricing', () => {
   useMockBackend();
 
@@ -189,9 +206,9 @@ describe('/pricing — models serving without pricing', () => {
     expect(notice).toBeTruthy();
     await findByTestId('unpriced-model-gemma4:e2b');
 
-    // Effective rate = 21.73 / 869_200 * 1e6 = 25.00 credits / 1M tokens.
+    // Effective rate = 21.73 / 869_200 * 1e6 = $25.00 / 1M tokens.
     const rate = await findByTestId('unpriced-effective-rate-gemma4:e2b');
-    expect(rate.textContent).toBe('25.00');
+    expect(rate.textContent).toBe('$25.00');
   });
 
   it('prefills the pricing form when adding a rate for a flagged model', async () => {

@@ -30,6 +30,16 @@ describe('PricingFormDialog', () => {
     expect(screen.getByTestId('pricing-model-id')).toBeDisabled();
   });
 
+  it('frames the rates in USD', () => {
+    wrap(<PricingFormDialog isOpen editing={ROW} onOpenChange={() => {}} onSubmit={() => {}} />);
+
+    // Description no longer says "credits"; rates are dollars per 1M tokens.
+    expect(screen.getByText(/USD per 1M tokens/i)).toBeInTheDocument();
+    expect(screen.queryByText(/credits/i)).toBeNull();
+    // The two rate inputs carry a leading "$" currency addon (FormMoney).
+    expect(screen.getAllByText('$').length).toBeGreaterThanOrEqual(2);
+  });
+
   it('keeps the edit variant while closing (no title/lock flash)', () => {
     // pricing/page.tsx nulls `editing` in the same update that closes the
     // dialog. Chakra keeps the content mounted through its exit animation, so

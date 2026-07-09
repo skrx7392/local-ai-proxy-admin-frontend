@@ -149,7 +149,7 @@ export default function PricingPage() {
           <Box>
             <Heading textStyle="heading.md">Pricing</Heading>
             <Text color="fg.muted" textStyle="body.sm">
-              Per-model prompt and completion rates in credits per 1M tokens.
+              Per-model prompt and completion rates in USD per 1M tokens.
               Only active rows are listed; archiving soft-deletes.
             </Text>
           </Box>
