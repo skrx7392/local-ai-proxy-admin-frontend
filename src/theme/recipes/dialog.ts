@@ -4,7 +4,18 @@ import { defineSlotRecipe } from '@chakra-ui/react';
  * Dialog slot recipe per PLAN.md §10.6.
  *
  * Slots: backdrop, positioner, content, header, body, footer, title, description, closeTrigger.
- * Enter: `slideIn` (320ms, emphasized). Exit: reverse `slideIn` 180ms accelerated.
+ * Enter: `slideIn` (320ms, emphasized). Exit: `slideOut` (180ms, accelerated).
+ *
+ * Motion rules this recipe depends on:
+ * - Enter and exit MUST use distinct keyframe names. A finished enter
+ *   animation never replays with `animation-direction: reverse` (animation
+ *   identity is the name), and Zag's presence machine compares computed
+ *   animation names between open/closed to decide whether an exit animation
+ *   exists — same name means the dialog/backdrop unmounts in a single frame.
+ * - `motionPreset` is pinned to `none` in defaultVariants: Chakra's default
+ *   recipe ships content animations in that variant (default `scale`), and
+ *   variant styles override base styles, which would silently replace the
+ *   animations below.
  *
  * Backdrop is `rgba(15,23,42,0.55)` dark / `0.30` light with `blur(6px)`.
  */
@@ -36,10 +47,10 @@ export const dialogRecipe = defineSlotRecipe({
         animationFillMode: 'both',
       },
       _closed: {
-        animationName: 'fade',
-        animationDirection: 'reverse',
+        animationName: 'fadeOut',
         animationDuration: 'sm',
         animationTimingFunction: 'accelerate',
+        animationFillMode: 'both',
       },
     },
     positioner: {
@@ -76,10 +87,10 @@ export const dialogRecipe = defineSlotRecipe({
         animationFillMode: 'both',
       },
       _closed: {
-        animationName: 'slideIn',
-        animationDirection: 'reverse',
+        animationName: 'slideOut',
         animationDuration: '180ms',
         animationTimingFunction: 'accelerate',
+        animationFillMode: 'both',
       },
     },
     header: {
@@ -118,8 +129,14 @@ export const dialogRecipe = defineSlotRecipe({
       form: { content: { maxWidth: '720px' } },
       detail: { content: { maxWidth: '960px' } },
     },
+    // Declared so defaultVariants can pin it; `none` merges with Chakra's
+    // default motionPreset variant of the same name (also empty).
+    motionPreset: {
+      none: {},
+    },
   },
   defaultVariants: {
     size: 'confirm',
+    motionPreset: 'none',
   },
 });

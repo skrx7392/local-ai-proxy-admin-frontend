@@ -20,6 +20,16 @@ export const keyframes = defineKeyframes({
     from: { opacity: 0 },
     to: { opacity: 1 },
   },
+  // Exit animations get their OWN keyframes rather than replaying an
+  // entrance with `animation-direction: reverse`. CSS animation identity is
+  // the animation-name: a finished enter animation never replays when only
+  // its direction flips, and Zag's presence machine (Chakra dialogs) compares
+  // computed animation names between open/closed to decide whether to stay
+  // mounted for an exit at all. Same name ⇒ no exit ⇒ single-frame pop.
+  fadeOut: {
+    from: { opacity: 1 },
+    to: { opacity: 0 },
+  },
   rise: {
     from: { opacity: 0, transform: 'translateY(8px)' },
     to: { opacity: 1, transform: 'translateY(0)' },
@@ -31,6 +41,10 @@ export const keyframes = defineKeyframes({
   slideIn: {
     from: { opacity: 0, transform: 'translateY(24px)' },
     to: { opacity: 1, transform: 'translateY(0)' },
+  },
+  slideOut: {
+    from: { opacity: 1, transform: 'translateY(0)' },
+    to: { opacity: 0, transform: 'translateY(24px)' },
   },
   shimmer: {
     '0%': { backgroundPosition: '-400px 0' },
@@ -96,10 +110,15 @@ export const preset = {
     animationFillMode: 'both',
   },
   slideOut: {
-    animationName: 'slideIn',
+    animationName: 'slideOut',
     animationDuration: '180ms',
     animationTimingFunction: 'accelerate',
-    animationDirection: 'reverse',
+    animationFillMode: 'both',
+  },
+  fadeOut: {
+    animationName: 'fadeOut',
+    animationDuration: 'sm',
+    animationTimingFunction: 'accelerate',
     animationFillMode: 'both',
   },
   shimmer: {
