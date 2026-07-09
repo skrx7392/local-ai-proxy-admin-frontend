@@ -2,8 +2,10 @@
 
 import {
   Box,
+  Button,
   Container,
   Heading,
+  HStack,
   SimpleGrid,
   Stack,
   Text,
@@ -52,20 +54,27 @@ export default function Page() {
   return (
     <Container maxW="7xl" paddingBlock="8" paddingInline="6">
       <Stack gap="6">
-        <Box>
-          <Heading textStyle="heading.md">Dashboard</Heading>
-          <Text color="fg.muted" textStyle="body.sm">
-            Last 24 hours across the whole proxy.{' '}
-            <NextLink
-              href="/usage"
-              data-testid="dashboard-open-usage"
-              style={{ textDecoration: 'underline' }}
-            >
+        <HStack justify="space-between" align="flex-start" gap="4">
+          <Box>
+            <Heading textStyle="heading.md">Dashboard</Heading>
+            <Text color="fg.muted" textStyle="body.sm">
+              Last 24 hours across the whole proxy.
+            </Text>
+          </Box>
+          {/* The primary drill-down: a real anchor (asChild NextLink) so it
+              navigates on the first click, even pre-hydration. */}
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            colorPalette="accent"
+            flexShrink="0"
+          >
+            <NextLink href="/usage" data-testid="dashboard-open-usage">
               Open full analytics
             </NextLink>
-            .
-          </Text>
-        </Box>
+          </Button>
+        </HStack>
 
         <SimpleGrid
           columns={{ base: 1, md: 2, lg: 4 }}
@@ -87,7 +96,7 @@ export default function Page() {
             testId="dashboard-stat-tokens"
           />
           <StatCard
-            label="Credits"
+            label="Credits used"
             value={summary.data ? `$${cf.format(summary.data.credits)}` : '—'}
             hint="last 24h"
             isLoading={summary.isLoading}

@@ -3,6 +3,8 @@
 import { Badge, Button, HStack, Progress, Text, VStack } from '@chakra-ui/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
+
 import type { RegistrationToken } from './schemas';
 
 const money = new Intl.NumberFormat('en-US', {
@@ -59,16 +61,24 @@ export function buildRegistrationTokenColumns(options: {
     {
       accessorKey: 'expires_at',
       header: 'Expires',
-      cell: ({ row }) =>
-        row.original.expires_at ? (
-          <Text fontSize="xs" color="fg.muted">
-            {new Date(row.original.expires_at).toLocaleDateString()}
+      // Relative by default ("in 3 days"), absolute (UTC) on hover.
+      cell: ({ row }) => {
+        const iso = row.original.expires_at;
+        return iso ? (
+          <Text
+            fontSize="xs"
+            color="fg.muted"
+            title={formatAbsoluteTime(iso)}
+            data-testid={`regtoken-expires-${row.original.id}`}
+          >
+            {formatRelativeTime(iso)}
           </Text>
         ) : (
           <Text fontSize="xs" color="fg.subtle">
             never
           </Text>
-        ),
+        );
+      },
     },
     {
       accessorKey: 'revoked',

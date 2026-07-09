@@ -10,6 +10,13 @@ const cf = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
+// Average request latency is stored in milliseconds but reads far better in
+// seconds (41,720 → "41.7"); the unit lives in the column header so the cells
+// stay unit-free and right-aligned for scanning.
+const secondsFmt = new Intl.NumberFormat(undefined, {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 1,
+});
 
 function OwnerTypeBadge({ type }: { type: OwnerType }) {
   const palette =
@@ -79,7 +86,7 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
     },
     {
       accessorKey: 'avg_duration_ms',
-      header: 'Avg ms',
+      header: 'Avg (s)',
       meta: { align: 'right' },
       cell: ({ row }) => (
         <Text
@@ -87,7 +94,7 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
           textAlign="right"
           color="fg.muted"
         >
-          {nf.format(Math.round(row.original.avg_duration_ms))}
+          {secondsFmt.format(row.original.avg_duration_ms / 1000)}
         </Text>
       ),
     },

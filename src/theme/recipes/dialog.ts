@@ -83,6 +83,13 @@ export const dialogRecipe = defineSlotRecipe({
       },
     },
     header: {
+      // Chakra's default dialog header is `display: flex` with no direction,
+      // which lays the title and description out side by side (the
+      // description floating to the right of the title). Stack them so the
+      // description sits beneath the title in every dialog at once.
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '1',
       padding: '6',
       paddingBottom: '3',
     },

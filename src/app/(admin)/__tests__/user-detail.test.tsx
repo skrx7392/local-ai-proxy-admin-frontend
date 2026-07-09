@@ -65,3 +65,35 @@ describe('/users/[id] — resource not found', () => {
     expect(back.getAttribute('href')).toBe('/users');
   });
 });
+
+describe('/users/[id] — profile badges hug their content', () => {
+  useMockBackend();
+
+  it('does not stretch the Status and Role badges to the full grid column', async () => {
+    server.use(
+      http.get('*/api/admin/users/999', () =>
+        HttpResponse.json({
+          data: {
+            id: 999,
+            email: 'detail@kinvee.in',
+            name: 'Detail User',
+            role: 'admin',
+            is_active: true,
+            account_id: 501,
+            created_at: '2026-01-12T10:00:00Z',
+            updated_at: '2026-02-01T10:00:00Z',
+          },
+        }),
+      ),
+    );
+
+    const { findByTestId } = wrap(<UserDetailPage />);
+
+    // align-self:flex-start keeps each badge at content width instead of
+    // filling the flex column the Field wrapper lays them out in.
+    const status = await findByTestId('user-detail-status');
+    const role = await findByTestId('user-detail-role');
+    expect(status.style.alignSelf).toBe('flex-start');
+    expect(role.style.alignSelf).toBe('flex-start');
+  });
+});

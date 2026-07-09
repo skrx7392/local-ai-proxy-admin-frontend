@@ -45,6 +45,7 @@ import {
 } from '@/features/usage/url';
 import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
+import { formatDuration } from '@/lib/utils/datetime';
 
 const TAB_VALUES = ['summary', 'by-model', 'by-user', 'timeseries'] as const;
 
@@ -204,7 +205,7 @@ function SummaryPanel({
       {data && (
         <HStack gap="6" color="fg.muted">
           <Text textStyle="body.sm">
-            Avg duration: {nf.format(Math.round(data.avg_duration_ms))} ms
+            Avg duration: {formatDuration(data.avg_duration_ms)}
           </Text>
         </HStack>
       )}

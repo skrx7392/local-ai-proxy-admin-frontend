@@ -64,6 +64,19 @@ describe('Dashboard — summary + timeseries fetch independently', () => {
     releaseTimeseries();
   });
 
+  it('labels the credits card "Credits used" and links to full analytics via a button', async () => {
+    const { findByText, getByTestId } = wrap(<DashboardPage />);
+
+    // Relabelled from the ambiguous bare "Credits".
+    expect(await findByText('Credits used')).toBeInTheDocument();
+
+    // The primary drill-down is now a real anchor (Button asChild NextLink)
+    // rather than a tiny inline text link.
+    const link = getByTestId('dashboard-open-usage');
+    expect(link.tagName).toBe('A');
+    expect(link).toHaveAttribute('href', '/usage');
+  });
+
   it('sends an absolute 24h range rather than relying on backend defaults', async () => {
     const seenParams: string[] = [];
     server.use(

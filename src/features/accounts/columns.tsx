@@ -11,6 +11,24 @@ const money = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 2,
 });
 
+// "Available" and "Balance" look identical whenever nothing is reserved
+// (available = balance − reserved), so each header carries a tooltip that
+// defines it. Dotted underline signals the hover affordance.
+function HeaderHint({ label, hint }: { label: string; hint: string }) {
+  return (
+    <Text
+      as="span"
+      title={hint}
+      cursor="help"
+      textDecoration="underline dotted"
+      textUnderlineOffset="2px"
+      data-testid={`account-col-${label.toLowerCase()}`}
+    >
+      {label}
+    </Text>
+  );
+}
+
 export function buildAccountColumns(options: {
   onGrantCredits: (account: Account) => void;
   onCreateKey: (account: Account) => void;
@@ -50,7 +68,12 @@ export function buildAccountColumns(options: {
     },
     {
       accessorKey: 'available',
-      header: 'Available',
+      header: () => (
+        <HeaderHint
+          label="Available"
+          hint="Spendable now — balance minus credits reserved for in-flight requests."
+        />
+      ),
       cell: ({ row }) => (
         <VStack align="flex-start" gap="0">
           <Text
@@ -69,7 +92,12 @@ export function buildAccountColumns(options: {
     },
     {
       accessorKey: 'balance',
-      header: 'Balance',
+      header: () => (
+        <HeaderHint
+          label="Balance"
+          hint="Total credits on the account, including any reserved for in-flight requests."
+        />
+      ),
       cell: ({ row }) => <Text>{money.format(row.original.balance)}</Text>,
     },
     {

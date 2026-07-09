@@ -22,6 +22,7 @@ import { DetailErrorState } from '@/components/data';
 import { FormField } from '@/components/forms';
 import { FormSkeleton } from '@/components/loading';
 import { useMinDuration } from '@/lib/utils/useMinDuration';
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
 import { ApiError } from '@/lib/api/errors';
 import {
   useKeyDetail,
@@ -118,8 +119,10 @@ export default function KeyDetailPage() {
                 <Text data-testid="key-detail-id">{key.id}</Text>
               </Field>
               <Field label="Status">
+                {/* Hug content instead of stretching to fill the grid cell. */}
                 <Badge
                   colorPalette={key.revoked ? 'gray' : 'green'}
+                  style={{ alignSelf: 'flex-start' }}
                   data-testid="key-detail-status"
                 >
                   {key.revoked ? 'Revoked' : 'Active'}
@@ -144,7 +147,9 @@ export default function KeyDetailPage() {
                 </Text>
               </Field>
               <Field label="Created">
-                <Text>{new Date(key.created_at).toLocaleString()}</Text>
+                <Text title={formatAbsoluteTime(key.created_at)}>
+                  {formatRelativeTime(key.created_at)}
+                </Text>
               </Field>
             </SimpleGrid>
           </Stack>
