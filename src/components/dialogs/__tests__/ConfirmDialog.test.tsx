@@ -70,6 +70,37 @@ describe('ConfirmDialog', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 
+  it('keeps its title + description while closing (no content flash)', () => {
+    // The pages null the acted-on row in the SAME update that closes the
+    // dialog, and Chakra keeps the content mounted through its exit animation.
+    // Without holding the last values, the body would blank out mid-animation.
+    const { rerender } = wrap(
+      <ConfirmDialog
+        isOpen
+        onOpenChange={() => {}}
+        title="Revoke this key?"
+        description="This cannot be undone."
+        onConfirm={() => {}}
+      />,
+    );
+
+    // Close + clear, exactly as e.g. keys/page.tsx does on onOpenChange(false).
+    rerender(
+      <ChakraProvider value={system}>
+        <ConfirmDialog
+          isOpen={false}
+          onOpenChange={() => {}}
+          title=""
+          description=""
+          onConfirm={() => {}}
+        />
+      </ChakraProvider>,
+    );
+
+    expect(screen.getByText('Revoke this key?')).toBeInTheDocument();
+    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument();
+  });
+
   it('disables both buttons while isConfirming', () => {
     wrap(
       <ConfirmDialog

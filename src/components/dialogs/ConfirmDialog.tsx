@@ -3,6 +3,8 @@
 import { Button, Dialog, Portal, Text } from '@chakra-ui/react';
 import type { ReactNode } from 'react';
 
+import { useHeldValue } from '@/lib/hooks/useHeldValue';
+
 export interface ConfirmDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -30,6 +32,12 @@ export function ConfirmDialog({
   onConfirm,
   isConfirming = false,
 }: ConfirmDialogProps) {
+  // Callers derive `title`/`description` from the row being acted on and null
+  // that row in the same update that closes the dialog. Hold the last values
+  // so the body doesn't blank out during the exit animation. See useHeldValue.
+  const heldTitle = useHeldValue(isOpen, title);
+  const heldDescription = useHeldValue(isOpen, description);
+
   return (
     <Dialog.Root
       open={isOpen}
@@ -41,15 +49,15 @@ export function ConfirmDialog({
         <Dialog.Positioner>
           <Dialog.Content data-testid="confirm-dialog">
             <Dialog.Header>
-              <Dialog.Title>{title}</Dialog.Title>
+              <Dialog.Title>{heldTitle}</Dialog.Title>
             </Dialog.Header>
             <Dialog.Body>
-              {typeof description === 'string' ? (
+              {typeof heldDescription === 'string' ? (
                 <Text textStyle="body.sm" color="fg.muted">
-                  {description}
+                  {heldDescription}
                 </Text>
               ) : (
-                description
+                heldDescription
               )}
             </Dialog.Body>
             <Dialog.Footer>

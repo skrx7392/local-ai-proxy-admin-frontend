@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { FormField, FormMoney } from '@/components/forms';
+import { useHeldValue } from '@/lib/hooks/useHeldValue';
 
 import {
   GrantCreditsFormSchema,
@@ -51,6 +52,11 @@ export function GrantCreditsDialog({
 
   const submit = handleSubmit((values) => onSubmit(values));
 
+  // The page nulls `accountName` in the same update that closes the dialog.
+  // Hold it so the description doesn't fall back to the generic copy during
+  // the exit animation. See useHeldValue.
+  const accountNameShown = useHeldValue(isOpen, accountName);
+
   return (
     <Dialog.Root
       open={isOpen}
@@ -64,8 +70,8 @@ export function GrantCreditsDialog({
               <Dialog.Header>
                 <Dialog.Title>Grant credits</Dialog.Title>
                 <Dialog.Description>
-                  {accountName
-                    ? `Adjust the credit balance on ${accountName}. Use a negative amount to claw back.`
+                  {accountNameShown
+                    ? `Adjust the credit balance on ${accountNameShown}. Use a negative amount to claw back.`
                     : 'Adjust the credit balance on this account.'}
                 </Dialog.Description>
               </Dialog.Header>

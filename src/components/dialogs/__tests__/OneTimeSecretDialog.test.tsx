@@ -35,9 +35,7 @@ describe('OneTimeSecretDialog', () => {
         onClose={() => {}}
       />,
     );
-    expect(screen.getByTestId('one-time-secret-value')).toHaveTextContent(
-      'sk_live_abc123',
-    );
+    expect(screen.getByTestId('one-time-secret-value')).toHaveTextContent('sk_live_abc123');
   });
 
   it('keeps the Done button disabled until the acknowledgement is checked', () => {
@@ -114,5 +112,34 @@ describe('OneTimeSecretDialog', () => {
       </ChakraProvider>,
     );
     expect(screen.getByTestId('one-time-secret-done')).toBeDisabled();
+  });
+
+  it('keeps the secret visible while closing (no value flash)', () => {
+    // The page nulls `secret` in the same update that closes the dialog, and
+    // Chakra keeps the content mounted through its exit animation. Without
+    // holding, the mono value box would blank out mid-animation.
+    const { rerender } = wrap(
+      <OneTimeSecretDialog
+        isOpen
+        secret="sk_live_abc123"
+        title="API key created"
+        description="desc"
+        onClose={() => {}}
+      />,
+    );
+
+    rerender(
+      <ChakraProvider value={system}>
+        <OneTimeSecretDialog
+          isOpen={false}
+          secret={null}
+          title="API key created"
+          description="desc"
+          onClose={() => {}}
+        />
+      </ChakraProvider>,
+    );
+
+    expect(screen.getByTestId('one-time-secret-value')).toHaveTextContent('sk_live_abc123');
   });
 });
