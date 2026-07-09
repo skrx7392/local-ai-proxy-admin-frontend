@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { DetailErrorState } from '@/components/data';
 import { FormSkeleton } from '@/components/loading';
 import { useMinDuration } from '@/lib/utils/useMinDuration';
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
 import { ApiError } from '@/lib/api/errors';
 import {
   useActiveAdminCount,
@@ -135,8 +136,12 @@ export default function UserDetailPage() {
                 <Text data-testid="user-detail-id">{user.id}</Text>
               </Field>
               <Field label="Status">
+                {/* Hug the label content instead of stretching to fill the
+                    grid cell (Field's column flex would otherwise stretch the
+                    badge full width). Inline style keeps it assertable. */}
                 <Badge
                   colorPalette={user.is_active ? 'green' : 'gray'}
+                  style={{ alignSelf: 'flex-start' }}
                   data-testid="user-detail-status"
                 >
                   {user.is_active ? 'Active' : 'Deactivated'}
@@ -145,6 +150,7 @@ export default function UserDetailPage() {
               <Field label="Role">
                 <Badge
                   colorPalette={user.role === 'admin' ? 'purple' : 'gray'}
+                  style={{ alignSelf: 'flex-start' }}
                   data-testid="user-detail-role"
                 >
                   {user.role}
@@ -156,10 +162,14 @@ export default function UserDetailPage() {
                 </Text>
               </Field>
               <Field label="Created">
-                <Text>{new Date(user.created_at).toLocaleString()}</Text>
+                <Text title={formatAbsoluteTime(user.created_at)}>
+                  {formatRelativeTime(user.created_at)}
+                </Text>
               </Field>
               <Field label="Updated">
-                <Text>{new Date(user.updated_at).toLocaleString()}</Text>
+                <Text title={formatAbsoluteTime(user.updated_at)}>
+                  {formatRelativeTime(user.updated_at)}
+                </Text>
               </Field>
             </SimpleGrid>
           </Stack>

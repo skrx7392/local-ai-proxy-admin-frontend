@@ -3,6 +3,8 @@
 import { Badge, Stack, Text } from '@chakra-ui/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
+
 import type { RegistrationEvent } from './schemas';
 
 // Kind-specific badge palettes so admin-created accounts, user self-signups,
@@ -31,11 +33,21 @@ export function buildRegistrationColumns(): ColumnDef<
       accessorKey: 'created_at',
       header: 'When',
       size: 180,
-      cell: ({ row }) => (
-        <Text fontSize="xs" color="fg.muted">
-          {new Date(row.original.created_at).toLocaleString()}
-        </Text>
-      ),
+      // Relative by default, absolute (UTC) on hover — unambiguous and
+      // consistent with the Keys/Users tables.
+      cell: ({ row }) => {
+        const iso = row.original.created_at;
+        return (
+          <Text
+            fontSize="xs"
+            color="fg.muted"
+            title={formatAbsoluteTime(iso)}
+            data-testid={`registration-when-${row.original.id}`}
+          >
+            {formatRelativeTime(iso)}
+          </Text>
+        );
+      },
     },
     {
       accessorKey: 'kind',

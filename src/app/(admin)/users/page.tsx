@@ -25,6 +25,19 @@ const ACTIVE_VALUES = ['all', 'active', 'deactivated'] as const;
 type RoleFilter = (typeof ROLE_VALUES)[number];
 type ActiveFilter = (typeof ACTIVE_VALUES)[number];
 
+// Filter-chip copy convention (whole app): the neutral option is "All
+// <dimension>" and every value is Title Case.
+const ROLE_LABELS: Record<RoleFilter, string> = {
+  all: 'All roles',
+  admin: 'Admin',
+  user: 'User',
+};
+const ACTIVE_LABELS: Record<ActiveFilter, string> = {
+  all: 'All statuses',
+  active: 'Active',
+  deactivated: 'Deactivated',
+};
+
 export default function UsersPage() {
   const { searchParams, update } = useListSearchParams();
 
@@ -143,7 +156,7 @@ export default function UsersPage() {
                 onClick={() => setRole(value)}
                 data-testid={`users-filter-role-${value}`}
               >
-                {value === 'all' ? 'All roles' : value}
+                {ROLE_LABELS[value]}
               </Button>
             ))}
           </HStack>
@@ -156,7 +169,7 @@ export default function UsersPage() {
                 onClick={() => setActive(value)}
                 data-testid={`users-filter-active-${value}`}
               >
-                {value === 'all' ? 'Any status' : value}
+                {ACTIVE_LABELS[value]}
               </Button>
             ))}
           </HStack>

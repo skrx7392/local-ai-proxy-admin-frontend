@@ -61,3 +61,30 @@ export function formatAbsoluteTime(iso: string): string {
   if (Number.isNaN(date.getTime())) return iso;
   return absoluteFmt.format(date);
 }
+
+// One decimal place, but drop a redundant ".0" so round values stay clean
+// ("2 s", not "2.0 s").
+function trimDecimal(value: number): string {
+  return value.toFixed(1).replace(/\.0$/, '');
+}
+
+/**
+ * Human-friendly duration from a millisecond count. Picks the largest sensible
+ * unit so "23115" reads as "23.1 s" instead of a wall of digits:
+ *
+ *   - `< 1 s`   → whole milliseconds  ("482 ms")
+ *   - `< 1 min` → seconds, 1 decimal  ("23.1 s")
+ *   - `< 1 h`   → minutes, 1 decimal  ("1.5 min")
+ *   - `≥ 1 h`   → hours, 1 decimal    ("2.3 h")
+ *
+ * A non-finite input renders as an em dash so a bad value is visible rather
+ * than "NaN ms".
+ */
+export function formatDuration(ms: number): string {
+  if (!Number.isFinite(ms)) return '—';
+  const abs = Math.abs(ms);
+  if (abs < 1000) return `${Math.round(ms)} ms`;
+  if (abs < 60_000) return `${trimDecimal(ms / 1000)} s`;
+  if (abs < 3_600_000) return `${trimDecimal(ms / 60_000)} min`;
+  return `${trimDecimal(ms / 3_600_000)} h`;
+}

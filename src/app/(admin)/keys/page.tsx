@@ -16,6 +16,14 @@ import type { CreateKeyFormValues, Key } from '@/features/keys/schemas';
 const ACTIVE_VALUES = ['all', 'active', 'revoked'] as const;
 type ActiveFilter = (typeof ACTIVE_VALUES)[number];
 
+// Neutral option is "All <dimension>"; values are Title Case (app-wide
+// filter-chip convention).
+const ACTIVE_LABELS: Record<ActiveFilter, string> = {
+  all: 'All statuses',
+  active: 'Active',
+  revoked: 'Revoked',
+};
+
 export default function KeysPage() {
   const { searchParams, update } = useListSearchParams();
 
@@ -115,7 +123,7 @@ export default function KeysPage() {
                 onClick={() => setActiveFilter(value)}
                 data-testid={`keys-filter-active-${value}`}
               >
-                {value === 'all' ? 'All' : value === 'active' ? 'Active' : 'Revoked'}
+                {ACTIVE_LABELS[value]}
               </Button>
             ))}
           </HStack>

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatAbsoluteTime, formatRelativeTime } from '../datetime';
+import {
+  formatAbsoluteTime,
+  formatDuration,
+  formatRelativeTime,
+} from '../datetime';
 
 describe('formatRelativeTime', () => {
   const now = new Date('2026-07-08T12:00:00Z');
@@ -45,5 +49,38 @@ describe('formatAbsoluteTime', () => {
 
   it('returns the raw input for an unparseable value', () => {
     expect(formatAbsoluteTime('nope')).toBe('nope');
+  });
+});
+
+describe('formatDuration', () => {
+  it('renders whole milliseconds under a second', () => {
+    expect(formatDuration(0)).toBe('0 ms');
+    expect(formatDuration(482)).toBe('482 ms');
+    expect(formatDuration(999)).toBe('999 ms');
+  });
+
+  it('renders seconds with one decimal', () => {
+    // The two values the UX review called out explicitly.
+    expect(formatDuration(23_115)).toBe('23.1 s');
+    expect(formatDuration(41_720)).toBe('41.7 s');
+  });
+
+  it('trims a redundant ".0" on round values', () => {
+    expect(formatDuration(1000)).toBe('1 s');
+    expect(formatDuration(2000)).toBe('2 s');
+  });
+
+  it('renders minutes once past a minute', () => {
+    expect(formatDuration(60_000)).toBe('1 min');
+    expect(formatDuration(90_000)).toBe('1.5 min');
+  });
+
+  it('renders hours once past an hour', () => {
+    expect(formatDuration(3_600_000)).toBe('1 h');
+  });
+
+  it('renders an em dash for a non-finite input', () => {
+    expect(formatDuration(Number.NaN)).toBe('—');
+    expect(formatDuration(Number.POSITIVE_INFINITY)).toBe('—');
   });
 });

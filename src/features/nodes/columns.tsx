@@ -4,6 +4,8 @@ import { Badge, Button, HStack, Text } from '@chakra-ui/react';
 import type { ColumnDef } from '@tanstack/react-table';
 import NextLink from 'next/link';
 
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
+
 import type { Node, NodeHealth } from './schemas';
 
 const HEALTH_PALETTE: Record<NodeHealth, string> = {
@@ -15,10 +17,11 @@ const HEALTH_PALETTE: Record<NodeHealth, string> = {
 const CONFIG_SOURCED_HINT =
   'Managed by the nodes config file (NODES_FILE) — read-only via the admin API';
 
+// Absolute (UTC) form used inside the health tooltip, where a precise,
+// timezone-unambiguous timestamp reads better than "5 minutes ago".
 function formatChecked(iso: string | null): string {
   if (!iso) return 'never';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
+  return formatAbsoluteTime(iso);
 }
 
 // Native `title` tooltips throughout: the health badge carries last_error +
@@ -146,11 +149,23 @@ export function buildNodeColumns(options: {
     {
       accessorKey: 'last_checked_at',
       header: 'Last checked',
-      cell: ({ row }) => (
-        <Text fontSize="xs" color="fg.muted">
-          {formatChecked(row.original.last_checked_at)}
-        </Text>
-      ),
+      // Relative by default, absolute (UTC) on hover — same pattern as the
+      // Keys "Last used" column.
+      cell: ({ row }) => {
+        const iso = row.original.last_checked_at;
+        if (!iso) {
+          return (
+            <Text fontSize="xs" color="fg.subtle">
+              never
+            </Text>
+          );
+        }
+        return (
+          <Text fontSize="xs" color="fg.muted" title={formatAbsoluteTime(iso)}>
+            {formatRelativeTime(iso)}
+          </Text>
+        );
+      },
     },
     {
       id: 'actions',

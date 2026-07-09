@@ -27,6 +27,19 @@ const ACTIVE_VALUES = ['all', 'active', 'inactive'] as const;
 type TypeFilter = (typeof TYPE_VALUES)[number];
 type ActiveFilter = (typeof ACTIVE_VALUES)[number];
 
+// Neutral option is "All <dimension>"; values are Title Case (app-wide
+// filter-chip convention).
+const TYPE_LABELS: Record<TypeFilter, string> = {
+  all: 'All types',
+  personal: 'Personal',
+  service: 'Service',
+};
+const ACTIVE_LABELS: Record<ActiveFilter, string> = {
+  all: 'All statuses',
+  active: 'Active',
+  inactive: 'Inactive',
+};
+
 export default function AccountsPage() {
   const { searchParams, update } = useListSearchParams();
 
@@ -136,7 +149,7 @@ export default function AccountsPage() {
                 onClick={() => setType(value)}
                 data-testid={`accounts-filter-type-${value}`}
               >
-                {value === 'all' ? 'All types' : value}
+                {TYPE_LABELS[value]}
               </Button>
             ))}
           </HStack>
@@ -149,7 +162,7 @@ export default function AccountsPage() {
                 onClick={() => setActive(value)}
                 data-testid={`accounts-filter-active-${value}`}
               >
-                {value === 'all' ? 'Any status' : value}
+                {ACTIVE_LABELS[value]}
               </Button>
             ))}
           </HStack>

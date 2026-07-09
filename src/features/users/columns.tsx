@@ -4,6 +4,8 @@ import { Badge, Button, HStack, Link as ChakraLink, Text, VStack } from '@chakra
 import type { ColumnDef } from '@tanstack/react-table';
 import NextLink from 'next/link';
 
+import { formatAbsoluteTime, formatRelativeTime } from '@/lib/utils/datetime';
+
 import type { User } from './schemas';
 
 // Shown wherever deactivating the last active admin is blocked pre-flight.
@@ -69,11 +71,21 @@ export function buildUserColumns(options: {
     {
       accessorKey: 'created_at',
       header: 'Joined',
-      cell: ({ row }) => (
-        <Text fontSize="xs" color="fg.muted">
-          {new Date(row.original.created_at).toLocaleDateString()}
-        </Text>
-      ),
+      // Relative by default with the absolute (UTC) value on hover — matches
+      // the Keys table so dates read the same everywhere.
+      cell: ({ row }) => {
+        const iso = row.original.created_at;
+        return (
+          <Text
+            fontSize="xs"
+            color="fg.muted"
+            title={formatAbsoluteTime(iso)}
+            data-testid={`user-joined-${row.original.id}`}
+          >
+            {formatRelativeTime(iso)}
+          </Text>
+        );
+      },
     },
     {
       id: 'actions',

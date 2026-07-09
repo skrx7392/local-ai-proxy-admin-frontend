@@ -60,11 +60,21 @@ export function buildKeyColumns(options: {
     {
       accessorKey: 'created_at',
       header: 'Created',
-      cell: ({ row }) => (
-        <Text fontSize="xs" color="fg.muted">
-          {new Date(row.original.created_at).toLocaleDateString()}
-        </Text>
-      ),
+      // Relative by default, unambiguous absolute (UTC) on hover — same
+      // pattern as the "Last used" column below.
+      cell: ({ row }) => {
+        const iso = row.original.created_at;
+        return (
+          <Text
+            fontSize="xs"
+            color="fg.muted"
+            title={formatAbsoluteTime(iso)}
+            data-testid={`key-created-${row.original.id}`}
+          >
+            {formatRelativeTime(iso)}
+          </Text>
+        );
+      },
     },
     {
       accessorKey: 'last_used_at',
