@@ -4,7 +4,12 @@ import { Badge, Box, Button, HStack, Stack, Text, VStack } from '@chakra-ui/reac
 
 import type { UnpricedServingModel } from './unpriced';
 
+// Both the effective rate and the amount charged render as USD (1 credit =
+// $1, the app-wide convention). The rate keeps up to 6 decimals; the charged
+// total is a plain money amount.
 const perMtok = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
   minimumFractionDigits: 2,
   maximumFractionDigits: 6,
 });
