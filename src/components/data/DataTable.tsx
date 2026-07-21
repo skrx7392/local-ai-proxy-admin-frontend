@@ -7,7 +7,18 @@ import {
   useReactTable,
   type ColumnDef,
   type Row,
+  type RowData,
 } from '@tanstack/react-table';
+
+// Column alignment is declared once in the column def and applied to the
+// header and every body cell here — cells must not set their own textAlign,
+// or headers and values drift apart visually.
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- augmentation must match the library's type parameters
+  interface ColumnMeta<TData extends RowData, TValue> {
+    align?: 'left' | 'center' | 'right';
+  }
+}
 import { useRouter } from 'next/navigation';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 
@@ -104,11 +115,14 @@ export function DataTable<TData>({
               {headerGroup.headers.map((header) => (
                 <Table.ColumnHeader
                   key={header.id}
-                  style={
-                    header.column.columnDef.size !== undefined
-                      ? { width: `${header.column.columnDef.size}px` }
-                      : undefined
-                  }
+                  style={{
+                    ...(header.column.columnDef.size !== undefined && {
+                      width: `${header.column.columnDef.size}px`,
+                    }),
+                    ...(header.column.columnDef.meta?.align && {
+                      textAlign: header.column.columnDef.meta.align,
+                    }),
+                  }}
                 >
                   {header.isPlaceholder
                     ? null
@@ -138,7 +152,14 @@ export function DataTable<TData>({
 
 function renderCells<TData>(row: Row<TData>): ReactNode {
   return row.getVisibleCells().map((cell) => (
-    <Table.Cell key={cell.id}>
+    <Table.Cell
+      key={cell.id}
+      style={
+        cell.column.columnDef.meta?.align
+          ? { textAlign: cell.column.columnDef.meta.align }
+          : undefined
+      }
+    >
       {flexRender(cell.column.columnDef.cell, cell.getContext())}
     </Table.Cell>
   ));

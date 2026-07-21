@@ -74,6 +74,33 @@ describe('DataTable', () => {
     expect(screen.getByText('Bo')).toBeInTheDocument();
     expect(screen.getByText('user')).toBeInTheDocument();
   });
+
+  it('applies meta.align to the header AND every body cell of the column', () => {
+    // Header/cell alignment must come from one source of truth — cells that
+    // right-aligned themselves under a left-aligned header looked broken
+    // (Usage tab numeric columns).
+    const alignedColumns: ColumnDef<Row, unknown>[] = [
+      { accessorKey: 'name', header: 'Name' },
+      { accessorKey: 'role', header: 'Role', meta: { align: 'center' } },
+    ];
+    wrap(
+      <DataTable
+        data={data}
+        columns={alignedColumns}
+        getRowId={(r) => String(r.id)}
+      />,
+    );
+    expect(screen.getByRole('columnheader', { name: 'Role' })).toHaveStyle({
+      textAlign: 'center',
+    });
+    expect(screen.getByRole('cell', { name: 'admin' })).toHaveStyle({
+      textAlign: 'center',
+    });
+    // Columns without meta.align keep the table default.
+    expect(
+      screen.getByRole('columnheader', { name: 'Name' }),
+    ).not.toHaveStyle({ textAlign: 'center' });
+  });
 });
 
 describe('DataTable — row navigation (rowHref)', () => {

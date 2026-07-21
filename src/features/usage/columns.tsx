@@ -57,9 +57,9 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
     {
       accessorKey: 'requests',
       header: 'Requests',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums" textAlign="right">
+        <Text fontVariantNumeric="tabular-nums">
           {nf.format(row.original.requests)}
         </Text>
       ),
@@ -67,9 +67,9 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
     {
       accessorKey: 'total_tokens',
       header: 'Tokens',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums" textAlign="right">
+        <Text fontVariantNumeric="tabular-nums">
           {nf.format(row.original.total_tokens)}
         </Text>
       ),
@@ -77,9 +77,9 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
     {
       accessorKey: 'credits',
       header: 'Credits',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums" textAlign="right">
+        <Text fontVariantNumeric="tabular-nums">
           ${cf.format(row.original.credits)}
         </Text>
       ),
@@ -87,13 +87,9 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
     {
       accessorKey: 'avg_duration_ms',
       header: 'Avg (s)',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text
-          fontVariantNumeric="tabular-nums"
-          textAlign="right"
-          color="fg.muted"
-        >
+        <Text fontVariantNumeric="tabular-nums" color="fg.muted">
           {secondsFmt.format(row.original.avg_duration_ms / 1000)}
         </Text>
       ),
@@ -128,9 +124,9 @@ export function buildAccountUsageColumns(): ColumnDef<AccountUsageRow, unknown>[
     {
       accessorKey: 'requests',
       header: 'Requests',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums" textAlign="right">
+        <Text fontVariantNumeric="tabular-nums">
           {nf.format(row.original.requests)}
         </Text>
       ),
@@ -138,9 +134,9 @@ export function buildAccountUsageColumns(): ColumnDef<AccountUsageRow, unknown>[
     {
       accessorKey: 'total_tokens',
       header: 'Tokens',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums" textAlign="right">
+        <Text fontVariantNumeric="tabular-nums">
           {nf.format(row.original.total_tokens)}
         </Text>
       ),
@@ -148,9 +144,9 @@ export function buildAccountUsageColumns(): ColumnDef<AccountUsageRow, unknown>[
     {
       accessorKey: 'credits',
       header: 'Credits',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums" textAlign="right">
+        <Text fontVariantNumeric="tabular-nums">
           ${cf.format(row.original.credits)}
         </Text>
       ),
@@ -158,14 +154,10 @@ export function buildAccountUsageColumns(): ColumnDef<AccountUsageRow, unknown>[
     {
       accessorKey: 'key_count',
       header: 'Keys',
-      meta: { align: 'right' },
+      meta: { align: 'center' },
       size: 80,
       cell: ({ row }) => (
-        <Text
-          fontVariantNumeric="tabular-nums"
-          textAlign="right"
-          color="fg.muted"
-        >
+        <Text fontVariantNumeric="tabular-nums" color="fg.muted">
           {nf.format(row.original.key_count)}
         </Text>
       ),
