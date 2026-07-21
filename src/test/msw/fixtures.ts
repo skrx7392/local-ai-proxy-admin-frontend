@@ -80,6 +80,10 @@ export const accounts = [
     reserved: 5.25,
     available: 244.75,
     created_at: '2025-10-01T00:00:00Z',
+    allowance_managed: false,
+    monthly_grant: null,
+    effective_monthly_grant: null,
+    email: null,
   },
   {
     id: 502,
@@ -90,6 +94,42 @@ export const accounts = [
     reserved: 0.0,
     available: 1000.0,
     created_at: '2026-01-15T00:00:00Z',
+    allowance_managed: false,
+    monthly_grant: null,
+    effective_monthly_grant: null,
+    email: null,
+  },
+  // Auto-provisioned end-user account (allowance-managed, env default $5/mo).
+  {
+    id: 503,
+    name: 'enduser@example.com',
+    type: 'end_user',
+    is_active: true,
+    balance: 0.0,
+    reserved: 0.0,
+    available: 0.0,
+    created_at: '2026-06-02T00:00:00Z',
+    allowance_managed: true,
+    monthly_grant: null,
+    effective_monthly_grant: 5.0,
+    email: 'enduser@example.com',
+  },
+] as const;
+
+// Pending cap-hit credit requests (GET /api/admin/credit-requests).
+export const creditRequests = [
+  {
+    id: 71,
+    account_id: 503,
+    account_name: 'enduser@example.com',
+    email: 'enduser@example.com',
+    period: '2026-07-01',
+    status: 'pending',
+    created_at: '2026-07-21T09:00:00Z',
+    resolved_at: null,
+    resolved_note: null,
+    effective_monthly_grant: 5.0,
+    balance: 0.0,
   },
 ] as const;
 

@@ -61,6 +61,41 @@ const accounts = [
     reserved: 5.25,
     available: 244.75,
     created_at: '2025-10-01T00:00:00Z',
+    allowance_managed: false,
+    monthly_grant: null,
+    effective_monthly_grant: null,
+    email: null,
+  },
+  {
+    id: 503,
+    name: 'enduser@example.com',
+    type: 'end_user',
+    is_active: true,
+    balance: 0.0,
+    reserved: 0.0,
+    available: 0.0,
+    created_at: '2026-06-02T00:00:00Z',
+    allowance_managed: true,
+    monthly_grant: null,
+    effective_monthly_grant: 5.0,
+    email: 'enduser@example.com',
+  },
+];
+
+// Pending cap-hit credit requests (docs/design/credit-requests.md).
+const creditRequests = [
+  {
+    id: 71,
+    account_id: 503,
+    account_name: 'enduser@example.com',
+    email: 'enduser@example.com',
+    period: '2026-07-01',
+    status: 'pending',
+    created_at: '2026-07-21T09:00:00Z',
+    resolved_at: null,
+    resolved_note: null,
+    effective_monthly_grant: 5.0,
+    balance: 0.0,
   },
 ];
 
@@ -540,6 +575,26 @@ const server = createServer(async (req, res) => {
       balance: 250 + amount,
     });
   }
+  if (/^\/accounts\/\d+\/allowance$/.test(adminPath) && method === 'PUT') {
+    const body = await readJson(req).catch(() => ({}));
+    return json(res, 200, {
+      status: 'updated',
+      monthly_grant: body?.monthly_grant ?? null,
+    });
+  }
+
+  // Credit requests.
+  if (adminPath === '/credit-requests' && method === 'GET') {
+    const status = url.searchParams.get('status') ?? 'pending';
+    const list = creditRequests.filter((r) => r.status === status);
+    return json(res, 200, envelope(list, url));
+  }
+  if (/^\/credit-requests\/\d+$/.test(adminPath) && method === 'PUT') {
+    const body = await readJson(req).catch(() => ({}));
+    const id = Number(adminPath.split('/')[2]);
+    return json(res, 200, { data: { id, status: body?.status ?? 'granted' } });
+  }
+
   if (/^\/accounts\/\d+\/keys$/.test(adminPath) && method === 'POST') {
     const body = await readJson(req).catch(() => ({}));
     return json(res, 201, {

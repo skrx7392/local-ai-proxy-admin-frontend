@@ -47,6 +47,10 @@ export const qk = {
     list: (filters: AccountsFilters) => ['accounts', 'list', filters] as const,
     detail: (id: number) => ['accounts', 'detail', id] as const,
   },
+  creditRequests: {
+    all: ['creditRequests'] as const,
+    list: (status: string) => ['creditRequests', 'list', status] as const,
+  },
   pricing: {
     all: ['pricing'] as const,
     list: (filters: PricingFilters) => ['pricing', 'list', filters] as const,

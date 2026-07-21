@@ -8,21 +8,25 @@ import { OneTimeSecretDialog } from '@/components/dialogs';
 import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 
+import { AllowanceDialog } from '@/features/accounts/AllowanceDialog';
 import { CreateAccountKeyDialog } from '@/features/accounts/CreateAccountKeyDialog';
+import { CreditRequestsStrip } from '@/features/accounts/CreditRequestsStrip';
 import { GrantCreditsDialog } from '@/features/accounts/GrantCreditsDialog';
 import { buildAccountColumns } from '@/features/accounts/columns';
 import {
   useAccountsList,
   useCreateAccountKey,
   useGrantCredits,
+  useSetAllowance,
 } from '@/features/accounts/hooks';
 import type {
   Account,
   AccountKeyFormValues,
+  AllowanceFormValues,
   GrantCreditsFormValues,
 } from '@/features/accounts/schemas';
 
-const TYPE_VALUES = ['all', 'personal', 'service'] as const;
+const TYPE_VALUES = ['all', 'personal', 'service', 'end_user'] as const;
 const ACTIVE_VALUES = ['all', 'active', 'inactive'] as const;
 type TypeFilter = (typeof TYPE_VALUES)[number];
 type ActiveFilter = (typeof ACTIVE_VALUES)[number];
@@ -33,6 +37,7 @@ const TYPE_LABELS: Record<TypeFilter, string> = {
   all: 'All types',
   personal: 'Personal',
   service: 'Service',
+  end_user: 'End user',
 };
 const ACTIVE_LABELS: Record<ActiveFilter, string> = {
   all: 'All statuses',
@@ -55,6 +60,11 @@ export default function AccountsPage() {
   const [keyError, setKeyError] = useState<string | undefined>(undefined);
   const [createdKeySecret, setCreatedKeySecret] = useState<string | null>(null);
 
+  const [allowanceTarget, setAllowanceTarget] = useState<Account | null>(null);
+  const [allowanceError, setAllowanceError] = useState<string | undefined>(
+    undefined,
+  );
+
   const filters = useMemo(
     () => ({
       limit,
@@ -69,6 +79,7 @@ export default function AccountsPage() {
   const listQuery = useAccountsList(filters);
   const grant = useGrantCredits(grantTarget?.id ?? null);
   const createKey = useCreateAccountKey(keyTarget?.id ?? null);
+  const setAllowance = useSetAllowance(allowanceTarget?.id ?? null);
 
   const columns = useMemo(
     () =>
@@ -80,6 +91,10 @@ export default function AccountsPage() {
         onCreateKey: (account) => {
           setKeyError(undefined);
           setKeyTarget(account);
+        },
+        onEditAllowance: (account) => {
+          setAllowanceError(undefined);
+          setAllowanceTarget(account);
         },
       }),
     [],
@@ -98,6 +113,24 @@ export default function AccountsPage() {
         );
       },
     });
+  }
+
+  function applyAllowance(monthlyGrant: number | null): void {
+    setAllowanceError(undefined);
+    setAllowance.mutate(monthlyGrant, {
+      onSuccess: () => setAllowanceTarget(null),
+      onError: (error) => {
+        setAllowanceError(
+          error instanceof ApiError
+            ? error.message
+            : 'Failed to update allowance.',
+        );
+      },
+    });
+  }
+
+  function handleAllowanceSubmit(values: AllowanceFormValues): void {
+    applyAllowance(values.monthly_grant);
   }
 
   function handleCreateKey(values: AccountKeyFormValues): void {
@@ -138,6 +171,8 @@ export default function AccountsPage() {
             Credit balances and account-scoped keys.
           </Text>
         </Box>
+
+        <CreditRequestsStrip />
 
         <FilterBar hasActiveFilters={filtersActive} onClearFilters={clearFilters}>
           <HStack gap="2" data-testid="accounts-filter-type">
@@ -232,6 +267,21 @@ export default function AccountsPage() {
         title="API key created"
         description="Copy this key now. You won't be able to see it again."
         onClose={() => setCreatedKeySecret(null)}
+      />
+
+      <AllowanceDialog
+        isOpen={allowanceTarget !== null}
+        account={allowanceTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setAllowanceTarget(null);
+            setAllowanceError(undefined);
+          }
+        }}
+        onSubmit={handleAllowanceSubmit}
+        onUseDefault={() => applyAllowance(null)}
+        isSubmitting={setAllowance.isPending}
+        submissionError={allowanceError}
       />
     </Container>
   );

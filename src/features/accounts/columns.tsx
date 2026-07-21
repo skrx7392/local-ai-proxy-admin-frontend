@@ -29,9 +29,15 @@ function HeaderHint({ label, hint }: { label: string; hint: string }) {
   );
 }
 
+const TYPE_BADGE: Record<string, string> = {
+  service: 'blue',
+  end_user: 'purple',
+};
+
 export function buildAccountColumns(options: {
   onGrantCredits: (account: Account) => void;
   onCreateKey: (account: Account) => void;
+  onEditAllowance: (account: Account) => void;
 }): ColumnDef<Account, unknown>[] {
   return [
     {
@@ -44,6 +50,9 @@ export function buildAccountColumns(options: {
           </Text>
           <Text fontSize="xs" color="fg.muted">
             #{row.original.id}
+            {row.original.email && row.original.email !== row.original.name
+              ? ` · ${row.original.email}`
+              : ''}
           </Text>
         </VStack>
       ),
@@ -52,8 +61,8 @@ export function buildAccountColumns(options: {
       accessorKey: 'type',
       header: 'Type',
       cell: ({ row }) => (
-        <Badge colorPalette={row.original.type === 'service' ? 'blue' : 'gray'}>
-          {row.original.type}
+        <Badge colorPalette={TYPE_BADGE[row.original.type] ?? 'gray'}>
+          {row.original.type === 'end_user' ? 'end user' : row.original.type}
         </Badge>
       ),
     },
@@ -101,11 +110,46 @@ export function buildAccountColumns(options: {
       cell: ({ row }) => <Text>{money.format(row.original.balance)}</Text>,
     },
     {
+      id: 'allowance',
+      header: () => (
+        <HeaderHint
+          label="Allowance"
+          hint="Monthly grant for end-user accounts — the balance resets to this at the start of every month."
+        />
+      ),
+      cell: ({ row }) =>
+        row.original.allowance_managed &&
+        row.original.effective_monthly_grant !== null ? (
+          <VStack align="flex-start" gap="0">
+            <Text data-testid={`account-allowance-${row.original.id}`}>
+              {money.format(row.original.effective_monthly_grant)}/mo
+            </Text>
+            {row.original.monthly_grant === null && (
+              <Text fontSize="xs" color="fg.muted">
+                default
+              </Text>
+            )}
+          </VStack>
+        ) : (
+          <Text color="fg.muted">—</Text>
+        ),
+    },
+    {
       id: 'actions',
       header: '',
-      size: 240,
+      size: 300,
       cell: ({ row }) => (
         <HStack justify="flex-end" gap="1">
+          {row.original.allowance_managed && (
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => options.onEditAllowance(row.original)}
+              data-testid={`account-allowance-edit-${row.original.id}`}
+            >
+              Allowance
+            </Button>
+          )}
           <Button
             size="xs"
             variant="ghost"
