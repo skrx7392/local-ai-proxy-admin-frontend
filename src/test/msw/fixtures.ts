@@ -166,6 +166,9 @@ export const usageSummary = {
   errors: 37,
 } as const;
 
+// prompt/completion always sum to total_tokens; speed and percentiles are
+// non-null here because every fixture model has completed traffic (the
+// null case is covered inline in schemas.test.ts).
 export const usageByModel = [
   {
     model: 'llama3.1:8b',
@@ -173,6 +176,13 @@ export const usageByModel = [
     total_tokens: 1_402_044,
     credits: 21.03,
     avg_duration_ms: 311.5,
+    prompt_tokens: 512_004,
+    completion_tokens: 890_040,
+    tok_per_sec: 88.4,
+    p50_duration_ms: 271.0,
+    p95_duration_ms: 612.5,
+    error_count: 21,
+    partial_count: 4,
   },
   {
     model: 'llama3.1:70b',
@@ -180,6 +190,13 @@ export const usageByModel = [
     total_tokens: 645_054,
     credits: 27.69,
     avg_duration_ms: 442.1,
+    prompt_tokens: 402_010,
+    completion_tokens: 243_044,
+    tok_per_sec: 24.6,
+    p50_duration_ms: 398.2,
+    p95_duration_ms: 1_240.0,
+    error_count: 12,
+    partial_count: 2,
   },
   {
     // Served traffic and accrued credits but has NO active pricing row — the
@@ -190,6 +207,13 @@ export const usageByModel = [
     total_tokens: 869_200,
     credits: 21.73,
     avg_duration_ms: 290.4,
+    prompt_tokens: 431_300,
+    completion_tokens: 437_900,
+    tok_per_sec: 96.1,
+    p50_duration_ms: 265.0,
+    p95_duration_ms: 540.8,
+    error_count: 4,
+    partial_count: 0,
   },
 ] as const;
 

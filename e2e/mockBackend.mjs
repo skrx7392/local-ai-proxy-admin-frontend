@@ -103,8 +103,34 @@ const usageSummary = {
 };
 
 const usageByModel = [
-  { model: 'llama3.1:8b', requests: 9120, total_tokens: 1402044, credits: 21.03, avg_duration_ms: 311.5 },
-  { model: 'llama3.1:70b', requests: 3360, total_tokens: 645054, credits: 27.69, avg_duration_ms: 442.1 },
+  {
+    model: 'llama3.1:8b',
+    requests: 9120,
+    total_tokens: 1402044,
+    credits: 21.03,
+    avg_duration_ms: 311.5,
+    prompt_tokens: 512004,
+    completion_tokens: 890040,
+    tok_per_sec: 88.4,
+    p50_duration_ms: 271.0,
+    p95_duration_ms: 612.5,
+    error_count: 21,
+    partial_count: 4,
+  },
+  {
+    model: 'llama3.1:70b',
+    requests: 3360,
+    total_tokens: 645054,
+    credits: 27.69,
+    avg_duration_ms: 442.1,
+    prompt_tokens: 402010,
+    completion_tokens: 243044,
+    tok_per_sec: 24.6,
+    p50_duration_ms: 398.2,
+    p95_duration_ms: 1240.0,
+    error_count: 12,
+    partial_count: 2,
+  },
 ];
 
 const usageByAccount = [

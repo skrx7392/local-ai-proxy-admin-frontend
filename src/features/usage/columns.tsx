@@ -17,6 +17,19 @@ const secondsFmt = new Intl.NumberFormat(undefined, {
   minimumFractionDigits: 1,
   maximumFractionDigits: 1,
 });
+// Generation speed in tokens/sec (88.4, 24.6, …). One decimal is enough
+// resolution to compare models without implying benchmark precision.
+const rateFmt = new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 });
+
+// Speed and latency percentiles are null for models with no completed
+// requests — render an explicit dash, never 0 (0 would read as "instant").
+function MetricDash() {
+  return (
+    <Text color="fg.muted" aria-label="not available">
+      —
+    </Text>
+  );
+}
 
 // NULL account_type = the unattributed bucket (legacy admin keys with no
 // account). Rendered literally as "unattributed" rather than "—" so it isn't
@@ -69,9 +82,15 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
       header: 'Tokens',
       meta: { align: 'center' },
       cell: ({ row }) => (
-        <Text fontVariantNumeric="tabular-nums">
-          {nf.format(row.original.total_tokens)}
-        </Text>
+        <Stack gap="0.5" align="center">
+          <Text fontVariantNumeric="tabular-nums">
+            {nf.format(row.original.total_tokens)}
+          </Text>
+          <Text fontSize="xs" color="fg.muted" fontVariantNumeric="tabular-nums">
+            {nf.format(row.original.prompt_tokens)} in ·{' '}
+            {nf.format(row.original.completion_tokens)} out
+          </Text>
+        </Stack>
       ),
     },
     {
@@ -85,6 +104,19 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
       ),
     },
     {
+      accessorKey: 'tok_per_sec',
+      header: 'Speed (tok/s)',
+      meta: { align: 'center' },
+      cell: ({ row }) =>
+        row.original.tok_per_sec === null ? (
+          <MetricDash />
+        ) : (
+          <Text fontVariantNumeric="tabular-nums">
+            {rateFmt.format(row.original.tok_per_sec)}
+          </Text>
+        ),
+    },
+    {
       accessorKey: 'avg_duration_ms',
       header: 'Avg (s)',
       meta: { align: 'center' },
@@ -92,6 +124,39 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
         <Text fontVariantNumeric="tabular-nums" color="fg.muted">
           {secondsFmt.format(row.original.avg_duration_ms / 1000)}
         </Text>
+      ),
+    },
+    {
+      accessorKey: 'p95_duration_ms',
+      header: 'P95 (s)',
+      meta: { align: 'center' },
+      cell: ({ row }) =>
+        row.original.p95_duration_ms === null ? (
+          <MetricDash />
+        ) : (
+          <Text fontVariantNumeric="tabular-nums" color="fg.muted">
+            {secondsFmt.format(row.original.p95_duration_ms / 1000)}
+          </Text>
+        ),
+    },
+    {
+      accessorKey: 'error_count',
+      header: 'Errors',
+      meta: { align: 'center' },
+      cell: ({ row }) => (
+        <Stack gap="0.5" align="center">
+          <Text
+            fontVariantNumeric="tabular-nums"
+            color={row.original.error_count > 0 ? 'fg.error' : 'fg.muted'}
+          >
+            {nf.format(row.original.error_count)}
+          </Text>
+          {row.original.partial_count > 0 && (
+            <Text fontSize="xs" color="fg.muted" fontVariantNumeric="tabular-nums">
+              +{nf.format(row.original.partial_count)} partial
+            </Text>
+          )}
+        </Stack>
       ),
     },
   ];
