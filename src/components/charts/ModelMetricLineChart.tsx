@@ -61,7 +61,10 @@ export interface ModelMetricLineChartProps {
 
 // Recharts hands each dot its row index; a sample with null on both sides
 // gets no connecting line segment, so it must render a visible marker or a
-// real measurement disappears. All other points stay dotless (r=0).
+// real measurement disappears. Isolated indices are precomputed per line —
+// dense lines skip the function dot entirely (dot={false}) and lines with
+// isolated samples return null for every other point, so a 30d/hour window
+// with 12 models never allocates tens of thousands of invisible nodes.
 interface LineDotProps {
   key?: Key | null | undefined;
   cx?: number | undefined;
@@ -69,23 +72,37 @@ interface LineDotProps {
   index?: number | undefined;
 }
 
-function makeIsolatedDot(
+function isolatedIndexSet(
   data: ModelSeriesChartRow[],
   model: string,
   metric: ModelMetricKey,
-  color: string,
-) {
+): ReadonlySet<number> {
+  const out = new Set<number>();
+  for (let i = 0; i < data.length; i++) {
+    if (isIsolatedSample(data, model, metric, i)) out.add(i);
+  }
+  return out;
+}
+
+function makeIsolatedDot(isolated: ReadonlySet<number>, color: string) {
   return function IsolatedDot({ key, cx, cy, index }: LineDotProps) {
     if (
       cx === undefined ||
       cy === undefined ||
       index === undefined ||
-      !isIsolatedSample(data, model, metric, index)
+      !isolated.has(index)
     ) {
-      return <circle key={key} r={0} />;
+      return null;
     }
     return <circle key={key} cx={cx} cy={cy} r={3} fill={color} />;
   };
+}
+
+function dotProp(
+  isolated: ReadonlySet<number>,
+  color: string,
+): false | ReturnType<typeof makeIsolatedDot> {
+  return isolated.size === 0 ? false : makeIsolatedDot(isolated, color);
 }
 
 export function ModelMetricLineChart({
@@ -108,6 +125,21 @@ export function ModelMetricLineChart({
     for (const m of metrics) scales[m] = scale;
     return pivotModelSeries(series, metrics, scales);
   }, [series, metric, secondaryMetric, scale]);
+
+  // model → isolated sample indices, per rendered metric.
+  const isolatedByLine = useMemo(() => {
+    const out = new Map<string, ReadonlySet<number>>();
+    for (const s of series) {
+      out.set(`${s.model}:${metric}`, isolatedIndexSet(data, s.model, metric));
+      if (secondaryMetric) {
+        out.set(
+          `${s.model}:${secondaryMetric}`,
+          isolatedIndexSet(data, s.model, secondaryMetric),
+        );
+      }
+    }
+    return out;
+  }, [data, series, metric, secondaryMetric]);
 
   return (
     <ChartFrame
@@ -164,7 +196,10 @@ export function ModelMetricLineChart({
               name={s.model}
               stroke={colorFor(s.model)}
               strokeWidth={2}
-              dot={makeIsolatedDot(data, s.model, metric, colorFor(s.model))}
+              dot={dotProp(
+                isolatedByLine.get(`${s.model}:${metric}`) ?? new Set(),
+                colorFor(s.model),
+              )}
               isAnimationActive={CHART_ENTER_ANIMATION}
             />
           ))}
@@ -180,10 +215,9 @@ export function ModelMetricLineChart({
                 stroke={colorFor(s.model)}
                 strokeWidth={1.5}
                 strokeDasharray="5 3"
-                dot={makeIsolatedDot(
-                  data,
-                  s.model,
-                  secondaryMetric,
+                dot={dotProp(
+                  isolatedByLine.get(`${s.model}:${secondaryMetric}`) ??
+                    new Set(),
                   colorFor(s.model),
                 )}
                 legendType="none"
