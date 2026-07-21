@@ -12,6 +12,7 @@ import {
 import { system } from '@/theme';
 
 import type { ModelUsage, TimeseriesBucket } from '@/features/usage/schemas';
+import { makeModelUsage } from '@/test/factories';
 
 function wrap(ui: ReactNode) {
   return render(<ChakraProvider value={system}>{ui}</ChakraProvider>);
@@ -114,8 +115,8 @@ const buckets: TimeseriesBucket[] = Array.from({ length: 8 }, (_, i) => ({
 }));
 
 const models: ModelUsage[] = [
-  { model: 'a', requests: 5, total_tokens: 100, credits: 0.1, avg_duration_ms: 4 },
-  { model: 'b', requests: 9, total_tokens: 900, credits: 0.9, avg_duration_ms: 6 },
+  makeModelUsage({ model: 'a', requests: 5, total_tokens: 100, credits: 0.1, avg_duration_ms: 4 }),
+  makeModelUsage({ model: 'b', requests: 9, total_tokens: 900, credits: 0.9, avg_duration_ms: 6 }),
 ];
 
 let mountCount = 0;

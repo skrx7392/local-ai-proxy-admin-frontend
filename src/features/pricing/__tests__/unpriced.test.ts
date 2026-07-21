@@ -1,33 +1,34 @@
 import { describe, expect, it } from 'vitest';
 
 import type { ModelUsage } from '@/features/usage/schemas';
+import { makeModelUsage } from '@/test/factories';
 
 import { findUnpricedServingModels } from '../unpriced';
 
 const usage: ModelUsage[] = [
-  {
+  makeModelUsage({
     model: 'llama3.1:8b',
     requests: 9_120,
     total_tokens: 1_402_044,
     credits: 21.03,
     avg_duration_ms: 311.5,
-  },
-  {
+  }),
+  makeModelUsage({
     // Served traffic, accrued credits, but no active pricing row.
     model: 'gemma4:e2b',
     requests: 640,
     total_tokens: 869_200,
     credits: 21.73,
     avg_duration_ms: 290.4,
-  },
-  {
+  }),
+  makeModelUsage({
     // Served for free (legacy no-account key path) — no pricing, zero credits.
     model: 'phi3:mini',
     requests: 12,
     total_tokens: 40_000,
     credits: 0,
     avg_duration_ms: 120,
-  },
+  }),
 ];
 
 describe('findUnpricedServingModels', () => {

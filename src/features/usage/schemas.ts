@@ -20,12 +20,23 @@ export const UsageSummarySchema = z.object({
 });
 export type UsageSummary = z.infer<typeof UsageSummarySchema>;
 
+// tok_per_sec and the latency percentiles are null (not zero) for models
+// with no completed requests — zero would read as "instant". Speed covers
+// completed requests that recorded completion tokens; percentiles cover all
+// completed requests; error/partial rows are excluded from both.
 export const ModelUsageSchema = z.object({
   model: z.string(),
   requests: z.number().int().nonnegative(),
   total_tokens: z.number().int().nonnegative(),
   credits: z.number().nonnegative(),
   avg_duration_ms: z.number().nonnegative(),
+  prompt_tokens: z.number().int().nonnegative(),
+  completion_tokens: z.number().int().nonnegative(),
+  tok_per_sec: z.number().nonnegative().nullable(),
+  p50_duration_ms: z.number().nonnegative().nullable(),
+  p95_duration_ms: z.number().nonnegative().nullable(),
+  error_count: z.number().int().nonnegative(),
+  partial_count: z.number().int().nonnegative(),
 });
 export type ModelUsage = z.infer<typeof ModelUsageSchema>;
 

@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { ModelBreakdownChart, StatCard, TimeseriesChart } from '@/components/charts';
 import { system } from '@/theme';
 import type { ModelUsage, TimeseriesBucket } from '@/features/usage/schemas';
+import { makeModelUsage } from '@/test/factories';
 
 function wrap(ui: ReactNode) {
   return render(<ChakraProvider value={system}>{ui}</ChakraProvider>);
@@ -52,9 +53,9 @@ describe('TimeseriesChart', () => {
 describe('ModelBreakdownChart', () => {
   it('does not mutate the caller’s query data when sorting', () => {
     const original: ModelUsage[] = [
-      { model: 'a', requests: 1, total_tokens: 10, credits: 0.1, avg_duration_ms: 0 },
-      { model: 'b', requests: 2, total_tokens: 99, credits: 0.2, avg_duration_ms: 0 },
-      { model: 'c', requests: 3, total_tokens: 50, credits: 0.3, avg_duration_ms: 0 },
+      makeModelUsage({ model: 'a', requests: 1, total_tokens: 10, credits: 0.1 }),
+      makeModelUsage({ model: 'b', requests: 2, total_tokens: 99, credits: 0.2 }),
+      makeModelUsage({ model: 'c', requests: 3, total_tokens: 50, credits: 0.3 }),
     ];
     const snapshot = original.map((r) => ({ ...r }));
     wrap(<ModelBreakdownChart data={original} />);
