@@ -11,9 +11,63 @@ export const AccountSchema = z.object({
   reserved: z.number(),
   available: z.number(),
   created_at: z.string(),
+  // End-user allowance fields (docs/design/credit-requests.md §4/§6).
+  // effective_monthly_grant is the override resolved against the env
+  // default server-side; null on non-allowance-managed accounts.
+  allowance_managed: z.boolean(),
+  monthly_grant: z.number().nullable(),
+  effective_monthly_grant: z.number().nullable(),
+  email: z.string().nullable(),
 });
 
 export type Account = z.infer<typeof AccountSchema>;
+
+// One cap-hit credit request row (GET /api/admin/credit-requests).
+export const CreditRequestSchema = z.object({
+  id: z.number().int(),
+  account_id: z.number().int(),
+  account_name: z.string(),
+  email: z.string().nullable(),
+  period: z.string(), // YYYY-MM-DD, first day of the month
+  status: z.enum(['pending', 'granted', 'dismissed', 'expired']),
+  created_at: z.string(),
+  resolved_at: z.string().nullable(),
+  resolved_note: z.string().nullable(),
+  effective_monthly_grant: z.number(),
+  balance: z.number(),
+});
+
+export type CreditRequest = z.infer<typeof CreditRequestSchema>;
+
+// PUT /api/admin/credit-requests/{id} → detail envelope {data: {id, status}}.
+export const ResolveCreditRequestResponseSchema = z.object({
+  id: z.number().int(),
+  status: z.enum(['granted', 'dismissed']),
+});
+
+// PUT /api/admin/accounts/{id}/allowance response.
+export const SetAllowanceResponseSchema = z.object({
+  status: z.literal('updated'),
+  monthly_grant: z.number().nullable(),
+});
+
+// Allowance editor form. The number sets a per-account override; clearing
+// back to the env default is a separate explicit action (never an empty
+// submit — that's a validation error, mirroring the backend's "null must be
+// spelled out" contract).
+export const AllowanceFormSchema = z.object({
+  monthly_grant: z.preprocess(
+    (value) => {
+      if (value === '' || value === undefined || value === null) return undefined;
+      const n = Number(value);
+      return Number.isNaN(n) ? value : n;
+    },
+    z.number().min(0, 'Allowance cannot be negative'),
+  ),
+});
+
+export type AllowanceFormInput = z.input<typeof AllowanceFormSchema>;
+export type AllowanceFormValues = z.output<typeof AllowanceFormSchema>;
 
 // grantCredits response shape (internal/admin/admin.go).
 export const GrantCreditsResponseSchema = z.object({

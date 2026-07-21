@@ -5,6 +5,7 @@ import {
   adminConfig,
   adminHealthOk,
   configSourcedNodeError,
+  creditRequests,
   keys,
   nodes,
   pricing,
@@ -128,6 +129,29 @@ export const handlers = [
       balance: 250 + amount,
     });
   }),
+  http.put(base('/accounts/:id/allowance'), async ({ request }) => {
+    // Matches setAccountAllowance response in internal/admin/admin.go.
+    const body = (await request.json()) as { monthly_grant?: number | null };
+    return HttpResponse.json({
+      status: 'updated',
+      monthly_grant: body?.monthly_grant ?? null,
+    });
+  }),
+
+  // ---- Credit requests ----
+  http.get(base('/credit-requests'), ({ request }) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get('status') ?? 'pending';
+    const list = creditRequests.filter((r) => r.status === status);
+    return HttpResponse.json(envelope(list, url));
+  }),
+  http.put(base('/credit-requests/:id'), async ({ params, request }) => {
+    const body = (await request.json()) as { status?: string };
+    return HttpResponse.json({
+      data: { id: Number(params['id']), status: body?.status ?? 'granted' },
+    });
+  }),
+
   http.post(base('/accounts/:id/keys'), async ({ request }) => {
     // Same shape as POST /api/admin/keys — backend reuses createKeyResponse.
     const body = (await request.json()) as { name?: string; rate_limit?: number };
