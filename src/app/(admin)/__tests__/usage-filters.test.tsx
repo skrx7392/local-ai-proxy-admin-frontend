@@ -126,4 +126,53 @@ describe('/usage — entity filter reaches the analytics query params', () => {
     await waitFor(() => expect(seen.length).toBeGreaterThan(0));
     expect(seen[0]?.get('account_id')).toBe('502');
   });
+
+  it('maps legacy tab=by-user deep links to the By-account tab', async () => {
+    // The breakdown tab was `by-user` before EUA; old bookmarks must land on
+    // its replacement, not silently fall back to Summary. lazyMount means the
+    // by-account request only fires if the alias actually selected the tab.
+    mockUrl.params = new URLSearchParams({
+      since: SINCE,
+      until: UNTIL,
+      tab: 'by-user',
+    });
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get('*/api/admin/usage/by-account', ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return HttpResponse.json({
+          data: [],
+          pagination: { limit: 25, offset: 0, total: 0 },
+        });
+      }),
+    );
+
+    wrap();
+    await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+  });
+
+  it('threads table pagination into the by-account request', async () => {
+    mockUrl.params = new URLSearchParams({
+      since: SINCE,
+      until: UNTIL,
+      tab: 'by-account',
+      limit: '25',
+      offset: '25',
+    });
+    const seen: URLSearchParams[] = [];
+    server.use(
+      http.get('*/api/admin/usage/by-account', ({ request }) => {
+        seen.push(new URL(request.url).searchParams);
+        return HttpResponse.json({
+          data: [],
+          pagination: { limit: 25, offset: 25, total: 60 },
+        });
+      }),
+    );
+
+    wrap();
+    await waitFor(() => expect(seen.length).toBeGreaterThan(0));
+    expect(seen[0]?.get('limit')).toBe('25');
+    expect(seen[0]?.get('offset')).toBe('25');
+  });
 });

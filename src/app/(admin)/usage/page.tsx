@@ -58,7 +58,13 @@ const cf = new Intl.NumberFormat(undefined, {
 export default function UsagePage() {
   const { searchParams, update } = useListSearchParams();
 
-  const tab = readEnum(searchParams, 'tab', TAB_VALUES, 'summary');
+  // Legacy deep links: the breakdown tab was `by-user` before end-user
+  // accounts made billing-account grouping the only correct view.
+  const rawTab = searchParams?.get('tab');
+  const tab =
+    rawTab === 'by-user'
+      ? 'by-account'
+      : readEnum(searchParams, 'tab', TAB_VALUES, 'summary');
   const limit = readInt(searchParams, 'limit', 25);
   const offset = readInt(searchParams, 'offset', 0);
 
@@ -226,7 +232,7 @@ function ByModelPanel({
   onPageChange: (limit: number, offset: number) => void;
 }) {
   const canonical = useMemo(() => canonicalizeUsageFilters(filters), [filters]);
-  const query = useUsageByModel(canonical);
+  const query = useUsageByModel(canonical, { limit, offset });
   const columns = useMemo(() => buildModelUsageColumns(), []);
 
   if (!canonical) return <InvalidRange />;
@@ -280,7 +286,7 @@ function ByAccountPanel({
   onPageChange: (limit: number, offset: number) => void;
 }) {
   const canonical = useMemo(() => canonicalizeUsageFilters(filters), [filters]);
-  const query = useUsageByAccount(canonical);
+  const query = useUsageByAccount(canonical, { limit, offset });
   const columns = useMemo(() => buildAccountUsageColumns(), []);
 
   if (!canonical) return <InvalidRange />;

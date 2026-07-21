@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { apiFetch } from '@/lib/api/client';
 import { parseDataEnvelope, parseEnvelope } from '@/lib/api/envelope';
-import { qk } from '@/lib/query/keys';
+import { qk, type ListPage } from '@/lib/query/keys';
 
 import type {
   CanonicalTimeseriesFilters,
@@ -36,30 +36,49 @@ export function useUsageSummary(filters: CanonicalUsageFilters | null) {
   });
 }
 
-export function useUsageByModel(filters: CanonicalUsageFilters | null) {
+// Default page mirrors the backend's default pagination window, for callers
+// that want "the top of the list" without paging UI (e.g. the Pricing page's
+// serving-model usage probe).
+const DEFAULT_LIST_PAGE: ListPage = { limit: 100, offset: 0 };
+
+export function useUsageByModel(
+  filters: CanonicalUsageFilters | null,
+  page: ListPage = DEFAULT_LIST_PAGE,
+) {
   return useQuery({
     enabled: filters !== null,
     queryKey: filters
-      ? qk.usage.byModel(filters)
+      ? qk.usage.byModel(filters, page)
       : (['usage', 'byModel', 'disabled'] as const),
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/usage/by-model', {
-        params: paramsFromFilters(filters!),
+        params: {
+          ...paramsFromFilters(filters!),
+          limit: page.limit,
+          offset: page.offset,
+        },
       });
       return parseEnvelope(raw, ModelUsageSchema);
     },
   });
 }
 
-export function useUsageByAccount(filters: CanonicalUsageFilters | null) {
+export function useUsageByAccount(
+  filters: CanonicalUsageFilters | null,
+  page: ListPage = DEFAULT_LIST_PAGE,
+) {
   return useQuery({
     enabled: filters !== null,
     queryKey: filters
-      ? qk.usage.byAccount(filters)
+      ? qk.usage.byAccount(filters, page)
       : (['usage', 'byAccount', 'disabled'] as const),
     queryFn: async () => {
       const raw = await apiFetch<unknown>('/usage/by-account', {
-        params: paramsFromFilters(filters!),
+        params: {
+          ...paramsFromFilters(filters!),
+          limit: page.limit,
+          offset: page.offset,
+        },
       });
       return parseEnvelope(raw, AccountUsageRowSchema);
     },
