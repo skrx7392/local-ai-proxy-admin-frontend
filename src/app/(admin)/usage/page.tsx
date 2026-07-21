@@ -263,7 +263,11 @@ function ByModelPanel({
         model: s.model,
         requests: s.buckets.reduce((acc, b) => acc + b.requests, 0),
         total_tokens: s.buckets.reduce((acc, b) => acc + b.total_tokens, 0),
-        credits: s.buckets.reduce((acc, b) => acc + b.credits, 0),
+        // Round the float sum to billing precision (4dp) — binary-float
+        // artifacts (6.449999…) would surface verbatim in the bar tooltip.
+        credits:
+          Math.round(s.buckets.reduce((acc, b) => acc + b.credits, 0) * 1e4) /
+          1e4,
       })),
     [series],
   );
