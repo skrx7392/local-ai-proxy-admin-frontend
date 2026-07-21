@@ -13,6 +13,7 @@ import {
   useUsageByModel,
   useUsageSummary,
   useUsageTimeseries,
+  useUsageTimeseriesByModel,
 } from '../hooks';
 
 const FILTERS = canonicalizeUsageFilters({
@@ -72,6 +73,25 @@ describe('usage hooks — query params + envelope parsing', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.interval).toBe('hour');
     expect(result.current.data?.buckets.length).toBeGreaterThan(0);
+  });
+
+  it('useUsageTimeseriesByModel parses aligned per-model series with null cells', async () => {
+    const { result } = renderHook(
+      () => useUsageTimeseriesByModel({ ...FILTERS, interval: 'hour' }),
+      { wrapper: wrapper() },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    const series = result.current.data?.series ?? [];
+    expect(series.length).toBeGreaterThan(1);
+    // Dense shared axis across all models.
+    const axis = series[0]!.buckets.map((b) => b.bucket);
+    for (const s of series) {
+      expect(s.buckets.map((b) => b.bucket)).toEqual(axis);
+    }
+    // The fixture's gap cell survives parsing as null, not 0.
+    expect(
+      series.some((s) => s.buckets.some((b) => b.tok_per_sec === null)),
+    ).toBe(true);
   });
 
   it('passes canonical filters as query params to /usage/summary', async () => {

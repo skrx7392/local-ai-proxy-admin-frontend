@@ -79,3 +79,35 @@ export const TimeseriesResponseSchema = z.object({
   buckets: z.array(TimeseriesBucketSchema),
 });
 export type TimeseriesResponse = z.infer<typeof TimeseriesResponseSchema>;
+
+// Per-model timeseries (charts on the By-model tab). The backend gap-fills
+// every series over the same [since, until) window, so all series share one
+// dense bucket axis; null speed/p95 marks cells with no completed requests
+// (rendered as line gaps, never zero).
+export const ModelSeriesBucketSchema = z.object({
+  bucket: z.string(),
+  requests: z.number().int().nonnegative(),
+  errors: z.number().int().nonnegative(),
+  prompt_tokens: z.number().int().nonnegative(),
+  completion_tokens: z.number().int().nonnegative(),
+  total_tokens: z.number().int().nonnegative(),
+  credits: z.number().nonnegative(),
+  tok_per_sec: z.number().nonnegative().nullable(),
+  avg_duration_ms: z.number().nonnegative(),
+  p95_duration_ms: z.number().nonnegative().nullable(),
+});
+export type ModelSeriesBucket = z.infer<typeof ModelSeriesBucketSchema>;
+
+export const ModelSeriesSchema = z.object({
+  model: z.string(),
+  buckets: z.array(ModelSeriesBucketSchema),
+});
+export type ModelSeries = z.infer<typeof ModelSeriesSchema>;
+
+export const ModelTimeseriesResponseSchema = z.object({
+  interval: TimeseriesIntervalSchema,
+  series: z.array(ModelSeriesSchema),
+});
+export type ModelTimeseriesResponse = z.infer<
+  typeof ModelTimeseriesResponseSchema
+>;

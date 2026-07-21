@@ -93,7 +93,8 @@ test.describe('chart first paint after client-side navigation', () => {
     await page.waitForURL((url) => url.pathname === '/usage');
     await page.getByTestId('usage-tab-by-model').click();
 
-    const chart = page.getByTestId('model-breakdown-chart');
+    // The tab renders a chart grid; the tokens bar chart is its anchor.
+    const chart = page.getByTestId('by-model-chart-tokens');
     const bars = chart.locator('.recharts-bar-rectangle path');
     await expect(bars).toHaveCount(2); // two models in the mock fixture
 
@@ -110,5 +111,14 @@ test.describe('chart first paint after client-side navigation', () => {
         { timeout: 10_000 },
       )
       .toBeGreaterThan(5);
+
+    // The per-model line charts draw from /usage/timeseries-by-model: the
+    // speed chart must paint one polyline per model in the mock fixture.
+    await expectLineDrawn(page, page.getByTestId('by-model-chart-speed'));
+    await expect(
+      page
+        .getByTestId('by-model-chart-speed')
+        .locator('.recharts-line-curve'),
+    ).toHaveCount(2);
   });
 });

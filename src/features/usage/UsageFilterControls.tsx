@@ -84,12 +84,20 @@ export function UsageFilterControls({
 }: UsageFilterControlsProps) {
   const currentPick = detectQuickPick(filters);
   const [customOpen, setCustomOpen] = useState(currentPick === null);
-  const [advancedOpen, setAdvancedOpen] = useState(
-    filters.account_id !== undefined ||
+  // Advanced-row visibility is DERIVED unless the user explicitly toggled
+  // it (choice !== null). Any active advanced setting — entity filters, or
+  // an interval override on a tab that consumes it — auto-opens the row, so
+  // deep links and tab switches can never hide an active setting behind a
+  // collapsed panel. The controls stay mounted across tab switches, which is
+  // why this must be computed per render rather than seeded once in state.
+  const [advancedChoice, setAdvancedChoice] = useState<boolean | null>(null);
+  const advancedOpen =
+    advancedChoice ??
+    (filters.account_id !== undefined ||
       filters.api_key_id !== undefined ||
       filters.user_id !== undefined ||
-      filters.node_id !== undefined,
-  );
+      filters.node_id !== undefined ||
+      (showInterval && interval !== undefined));
   const [customError, setCustomError] = useState<string | null>(null);
 
   function applyQuickPick(pick: QuickPick): void {
@@ -144,7 +152,8 @@ export function UsageFilterControls({
     filters.account_id !== undefined ||
     filters.api_key_id !== undefined ||
     filters.user_id !== undefined ||
-    filters.node_id !== undefined;
+    filters.node_id !== undefined ||
+    (showInterval && interval !== undefined);
 
   return (
     <Stack gap="3" data-testid="usage-filter-controls">
@@ -153,7 +162,7 @@ export function UsageFilterControls({
         onClearFilters={() => {
           const fresh = quickPickRange('24h');
           setCustomOpen(false);
-          setAdvancedOpen(false);
+          setAdvancedChoice(null);
           setCustomError(null);
           onChange(
             {
@@ -197,7 +206,7 @@ export function UsageFilterControls({
         <Button
           size="sm"
           variant="ghost"
-          onClick={() => setAdvancedOpen((v) => !v)}
+          onClick={() => setAdvancedChoice(!advancedOpen)}
           data-testid="usage-filter-advanced-toggle"
         >
           {advancedOpen ? 'Hide' : 'Advanced'}
@@ -222,14 +231,26 @@ export function UsageFilterControls({
                 Interval
               </Text>
               <HStack gap="1">
+                {/* "auto" clears the override: the backend then picks hour
+                    for windows ≤48h and day beyond — without it a chosen
+                    interval silently persisted across range changes. */}
+                {/* Interval feeds only the timeseries charts — never the
+                    paginated table queries — so changing it must not reset
+                    the table's offset. */}
+                <Button
+                  size="xs"
+                  variant={interval === undefined ? 'solid' : 'outline'}
+                  onClick={() => onChange({ interval: null })}
+                  data-testid="usage-filter-interval-auto"
+                >
+                  auto
+                </Button>
                 {(['hour', 'day'] as const).map((iv) => (
                   <Button
                     key={iv}
                     size="xs"
                     variant={interval === iv ? 'solid' : 'outline'}
-                    onClick={() =>
-                      onChange({ interval: iv }, { resetOffset: true })
-                    }
+                    onClick={() => onChange({ interval: iv })}
                     data-testid={`usage-filter-interval-${iv}`}
                   >
                     {iv}

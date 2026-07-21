@@ -84,6 +84,8 @@ export const qk = {
       ['usage', 'byAccount', pickUsageFilters(filters), page.limit, page.offset] as const,
     timeseries: (filters: CanonicalTimeseriesFilters) =>
       ['usage', 'timeseries', pickTimeseriesFilters(filters)] as const,
+    timeseriesByModel: (filters: CanonicalTimeseriesFilters) =>
+      ['usage', 'timeseriesByModel', pickTimeseriesFilters(filters)] as const,
   },
 } as const;
 

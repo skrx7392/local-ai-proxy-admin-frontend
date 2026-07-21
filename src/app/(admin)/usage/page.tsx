@@ -15,11 +15,15 @@ import { useMemo } from 'react';
 
 import { DataTable, EmptyState, Pagination } from '@/components/data';
 import {
+  ChartCard,
   ModelBreakdownChart,
+  ModelMetricLineChart,
   StatCard,
   TimeseriesChart,
 } from '@/components/charts';
 import { ChartSkeleton, DataTableSkeleton } from '@/components/loading';
+import { buildModelColorOrder } from '@/features/usage/modelSeriesChartData';
+import { qualitativeAt } from '@/theme';
 import {
   buildAccountUsageColumns,
   buildModelUsageColumns,
@@ -33,6 +37,7 @@ import {
   useUsageByModel,
   useUsageSummary,
   useUsageTimeseries,
+  useUsageTimeseriesByModel,
 } from '@/features/usage/hooks';
 import type {
   AccountUsageRow,
@@ -98,7 +103,7 @@ export default function UsagePage() {
         <UsageFilterControls
           filters={filters}
           onChange={update}
-          showInterval={tab === 'timeseries'}
+          showInterval={tab === 'timeseries' || tab === 'by-model'}
           interval={timeseriesFilters.interval}
         />
 
@@ -131,6 +136,7 @@ export default function UsagePage() {
           <Tabs.Content value="by-model">
             <ByModelPanel
               filters={filters}
+              timeseriesFilters={timeseriesFilters}
               limit={limit}
               offset={offset}
               onPageChange={(l, o) =>
@@ -222,32 +228,169 @@ function SummaryPanel({
 
 function ByModelPanel({
   filters,
+  timeseriesFilters,
   limit,
   offset,
   onPageChange,
 }: {
   filters: ReturnType<typeof readUsageFiltersFromUrl>;
+  timeseriesFilters: ReturnType<typeof readTimeseriesFiltersFromUrl>;
   limit: number;
   offset: number;
   onPageChange: (limit: number, offset: number) => void;
 }) {
   const canonical = useMemo(() => canonicalizeUsageFilters(filters), [filters]);
+  const canonicalTs = useMemo(
+    () => canonicalizeTimeseriesFilters(timeseriesFilters),
+    [timeseriesFilters],
+  );
   const query = useUsageByModel(canonical, { limit, offset });
+  const seriesQuery = useUsageTimeseriesByModel(canonicalTs);
   const columns = useMemo(() => buildModelUsageColumns(), []);
 
+  const rows = useMemo(() => query.data?.data ?? [], [query.data]);
+  const series = useMemo(
+    () => seriesQuery.data?.series ?? [],
+    [seriesQuery.data],
+  );
+  // Bar charts aggregate the series, NOT the table rows: `rows` is one
+  // pagination page ordered by tokens, so a paged table would reshuffle the
+  // charts and hide high-credit models outside the page. The series is the
+  // global top-N for the whole window — same dataset the line charts draw.
+  const chartRows = useMemo(
+    () =>
+      series.map((s) => ({
+        model: s.model,
+        requests: s.buckets.reduce((acc, b) => acc + b.requests, 0),
+        total_tokens: s.buckets.reduce((acc, b) => acc + b.total_tokens, 0),
+        // Round the float sum to billing precision (4dp) — binary-float
+        // artifacts (6.449999…) would surface verbatim in the bar tooltip.
+        credits:
+          Math.round(s.buckets.reduce((acc, b) => acc + b.credits, 0) * 1e4) /
+          1e4,
+      })),
+    [series],
+  );
+  // One color per model across every chart on this tab. Series order
+  // (window token totals desc) is canonical; table-only models append.
+  const colorFor = useMemo(() => {
+    const order = buildModelColorOrder(
+      series.map((s) => s.model),
+      rows.map((r) => r.model),
+    );
+    return (model: string) => qualitativeAt(Math.max(0, order.indexOf(model)));
+  }, [series, rows]);
+
   if (!canonical) return <InvalidRange />;
-  const rows = query.data?.data ?? [];
   const total = query.data?.pagination.total ?? 0;
+  const interval = seriesQuery.data?.interval ?? 'hour';
+  const chartsLoading = seriesQuery.isLoading;
 
   return (
     <Stack gap="4" paddingTop="4">
-      {/* Skeleton height matches the chart's rendered height so the
+      {/* Skeleton mirrors the loaded grid card-for-card (7 charts) so the
           loading → loaded swap cannot shift the table (and click targets)
           below it. */}
-      {query.isLoading ? (
-        <ChartSkeleton height={280} />
-      ) : rows.length > 0 ? (
-        <ModelBreakdownChart data={rows} />
+      {chartsLoading ? (
+        <SimpleGrid columns={{ base: 1, xl: 2 }} gap="4">
+          {Array.from({ length: 7 }, (_, i) => (
+            <ChartSkeleton key={i} height={300} />
+          ))}
+        </SimpleGrid>
+      ) : series.length > 0 ? (
+        <SimpleGrid columns={{ base: 1, xl: 2 }} gap="4">
+          <ChartCard
+            title="Total tokens by model"
+            hint="top 12 models by window token volume"
+          >
+            <ModelBreakdownChart
+              data={chartRows}
+              metric="total_tokens"
+              topN={12}
+              colorFor={colorFor}
+              height={240}
+              minHeight={200}
+              testId="by-model-chart-tokens"
+            />
+          </ChartCard>
+          <ChartCard
+            title="Requests & errors by model"
+            hint="solid = requests · dashed = errors"
+          >
+            <ModelMetricLineChart
+              series={series}
+              interval={interval}
+              metric="requests"
+              secondaryMetric="errors"
+              colorFor={colorFor}
+              ariaLabel="Requests and errors by model over time"
+              testId="by-model-chart-requests"
+            />
+          </ChartCard>
+          <ChartCard
+            title="Credits by model"
+            hint="within the top 12 models by window token volume"
+          >
+            <ModelBreakdownChart
+              data={chartRows}
+              metric="credits"
+              topN={12}
+              colorFor={colorFor}
+              height={240}
+              minHeight={200}
+              testId="by-model-chart-credits"
+            />
+          </ChartCard>
+          <ChartCard
+            title="Speed by model (tok/s)"
+            hint="gaps = no completed requests in that bucket"
+          >
+            <ModelMetricLineChart
+              series={series}
+              interval={interval}
+              metric="tok_per_sec"
+              colorFor={colorFor}
+              ariaLabel="Generation speed by model over time"
+              testId="by-model-chart-speed"
+            />
+          </ChartCard>
+          <ChartCard title="Average latency by model (s)">
+            <ModelMetricLineChart
+              series={series}
+              interval={interval}
+              metric="avg_duration_ms"
+              scale={1000}
+              colorFor={colorFor}
+              ariaLabel="Average latency by model over time"
+              testId="by-model-chart-avg"
+            />
+          </ChartCard>
+          <ChartCard title="P95 latency by model (s)">
+            <ModelMetricLineChart
+              series={series}
+              interval={interval}
+              metric="p95_duration_ms"
+              scale={1000}
+              colorFor={colorFor}
+              ariaLabel="P95 latency by model over time"
+              testId="by-model-chart-p95"
+            />
+          </ChartCard>
+          <ChartCard
+            title="Tokens in / out by model"
+            hint="solid = in (prompt) · dashed = out (completion)"
+          >
+            <ModelMetricLineChart
+              series={series}
+              interval={interval}
+              metric="prompt_tokens"
+              secondaryMetric="completion_tokens"
+              colorFor={colorFor}
+              ariaLabel="Prompt and completion tokens by model over time"
+              testId="by-model-chart-tokens-io"
+            />
+          </ChartCard>
+        </SimpleGrid>
       ) : null}
 
       {query.isLoading ? (
@@ -270,6 +413,7 @@ function ByModelPanel({
         isLoading={query.isFetching}
       />
       {query.error && <ErrorAlert error={query.error} />}
+      {seriesQuery.error && <ErrorAlert error={seriesQuery.error} />}
     </Stack>
   );
 }

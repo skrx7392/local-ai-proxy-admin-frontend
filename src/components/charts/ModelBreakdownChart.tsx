@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Tooltip,
   XAxis,
   YAxis,
@@ -14,14 +15,31 @@ import { qualitativeAt, rechartsTheme } from '@/theme';
 
 import { CHART_ENTER_ANIMATION, ChartFrame } from './ChartFrame';
 
-import type { ModelUsage } from '@/features/usage/schemas';
+/**
+ * Minimal row shape the chart actually reads. Both the paginated table rows
+ * (ModelUsage) and series-derived window totals satisfy it — sourcing bars
+ * from an unpaginated dataset must not require fabricating full table rows.
+ */
+export interface ModelBreakdownDatum {
+  model: string;
+  total_tokens: number;
+  requests: number;
+  credits: number;
+}
 
 export interface ModelBreakdownChartProps {
-  data: readonly ModelUsage[];
+  data: readonly ModelBreakdownDatum[];
   metric?: 'total_tokens' | 'requests' | 'credits';
   topN?: number;
   height?: number;
   minHeight?: number;
+  /**
+   * Per-model bar color, shared with the page's other charts so a model
+   * keeps one identity everywhere. Omitted = single palette color.
+   */
+  colorFor?: (model: string) => string;
+  /** Override when a page renders more than one breakdown chart. */
+  testId?: string;
 }
 
 const METRIC_LABEL: Record<
@@ -39,6 +57,8 @@ export function ModelBreakdownChart({
   topN = 10,
   height = 280,
   minHeight = 240,
+  colorFor,
+  testId = 'model-breakdown-chart',
 }: ModelBreakdownChartProps) {
   // Copy before sorting — `data` comes from react-query and mutating the
   // cached array would silently desync later readers that expect server order.
@@ -53,7 +73,7 @@ export function ModelBreakdownChart({
       height={height}
       minHeight={minHeight}
       ariaLabel={`${METRIC_LABEL[metric]} by model`}
-      testId="model-breakdown-chart"
+      testId={testId}
     >
       {({ width, height: chartHeight }) => (
         <BarChart
@@ -92,7 +112,10 @@ export function ModelBreakdownChart({
             fill={qualitativeAt(0)}
             radius={[4, 4, 0, 0]}
             isAnimationActive={CHART_ENTER_ANIMATION}
-          />
+          >
+            {colorFor &&
+              rows.map((r) => <Cell key={r.model} fill={colorFor(r.model)} />)}
+          </Bar>
         </BarChart>
       )}
     </ChartFrame>
