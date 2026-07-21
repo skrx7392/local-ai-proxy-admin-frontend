@@ -21,22 +21,22 @@ import {
 } from '@/components/charts';
 import { ChartSkeleton, DataTableSkeleton } from '@/components/loading';
 import {
+  buildAccountUsageColumns,
   buildModelUsageColumns,
-  buildOwnerUsageColumns,
 } from '@/features/usage/columns';
 import {
   canonicalizeTimeseriesFilters,
   canonicalizeUsageFilters,
 } from '@/features/usage/filters';
 import {
+  useUsageByAccount,
   useUsageByModel,
-  useUsageByUser,
   useUsageSummary,
   useUsageTimeseries,
 } from '@/features/usage/hooks';
 import type {
+  AccountUsageRow,
   ModelUsage,
-  OwnerUsageRow,
 } from '@/features/usage/schemas';
 import { UsageFilterControls } from '@/features/usage/UsageFilterControls';
 import {
@@ -47,7 +47,7 @@ import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 import { formatDuration } from '@/lib/utils/datetime';
 
-const TAB_VALUES = ['summary', 'by-model', 'by-user', 'timeseries'] as const;
+const TAB_VALUES = ['summary', 'by-model', 'by-account', 'timeseries'] as const;
 
 const nf = new Intl.NumberFormat(undefined);
 const cf = new Intl.NumberFormat(undefined, {
@@ -84,7 +84,7 @@ export default function UsagePage() {
         <Box>
           <Heading textStyle="heading.md">Usage</Heading>
           <Text color="fg.muted" textStyle="body.sm">
-            Aggregate traffic, model mix, and per-owner consumption. Filters
+            Aggregate traffic, model mix, and per-account consumption. Filters
             apply to every tab.
           </Text>
         </Box>
@@ -111,8 +111,8 @@ export default function UsagePage() {
             <Tabs.Trigger value="by-model" data-testid="usage-tab-by-model">
               By model
             </Tabs.Trigger>
-            <Tabs.Trigger value="by-user" data-testid="usage-tab-by-user">
-              By user
+            <Tabs.Trigger value="by-account" data-testid="usage-tab-by-account">
+              By account
             </Tabs.Trigger>
             <Tabs.Trigger value="timeseries" data-testid="usage-tab-timeseries">
               Timeseries
@@ -132,8 +132,8 @@ export default function UsagePage() {
               }
             />
           </Tabs.Content>
-          <Tabs.Content value="by-user">
-            <ByUserPanel
+          <Tabs.Content value="by-account">
+            <ByAccountPanel
               filters={filters}
               limit={limit}
               offset={offset}
@@ -268,7 +268,7 @@ function ByModelPanel({
   );
 }
 
-function ByUserPanel({
+function ByAccountPanel({
   filters,
   limit,
   offset,
@@ -280,8 +280,8 @@ function ByUserPanel({
   onPageChange: (limit: number, offset: number) => void;
 }) {
   const canonical = useMemo(() => canonicalizeUsageFilters(filters), [filters]);
-  const query = useUsageByUser(canonical);
-  const columns = useMemo(() => buildOwnerUsageColumns(), []);
+  const query = useUsageByAccount(canonical);
+  const columns = useMemo(() => buildAccountUsageColumns(), []);
 
   if (!canonical) return <InvalidRange />;
   const rows = query.data?.data ?? [];
@@ -292,17 +292,13 @@ function ByUserPanel({
       {query.isLoading ? (
         <DataTableSkeleton rows={5} />
       ) : (
-        <DataTable<OwnerUsageRow>
+        <DataTable<AccountUsageRow>
           data={rows}
           columns={columns}
           getRowId={(row) =>
-            row.owner_type === 'user'
-              ? `u:${row.user_id ?? 'x'}`
-              : row.owner_type === 'service'
-                ? `s:${row.account_id ?? 'x'}`
-                : `un:${row.user_id ?? 'x'}:${row.account_id ?? 'x'}`
+            row.account_id === null ? 'unattributed' : `a:${row.account_id}`
           }
-          aria-label="Usage by owner"
+          aria-label="Usage by account"
           emptyState={<EmptyState title="No usage in this range" />}
         />
       )}

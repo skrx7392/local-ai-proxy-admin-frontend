@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 
 import { parseDataEnvelope, parseEnvelope } from '@/lib/api/envelope';
 import {
+  usageByAccount,
   usageByModel,
-  usageByUser,
   usageSummary,
   usageTimeseries,
 } from '@/test/msw/fixtures';
 
 import {
+  AccountUsageRowSchema,
   ModelUsageSchema,
-  OwnerUsageRowSchema,
   TimeseriesResponseSchema,
   UsageSummarySchema,
 } from '../schemas';
@@ -37,18 +37,23 @@ describe('usage schemas — exact BE 2 envelope shapes', () => {
     expect(parsed.pagination.total).toBe(usageByModel.length);
   });
 
-  it('parses the by-user list envelope with all three owner_type variants', () => {
+  it('parses the by-account list envelope with all four account populations', () => {
     const parsed = parseEnvelope(
       {
-        data: usageByUser,
-        pagination: { limit: 10, offset: 0, total: usageByUser.length },
+        data: usageByAccount,
+        pagination: { limit: 10, offset: 0, total: usageByAccount.length },
       },
-      OwnerUsageRowSchema,
+      AccountUsageRowSchema,
     );
-    const kinds = parsed.data.map((r) => r.owner_type);
-    expect(kinds).toContain('user');
+    const kinds = parsed.data.map((r) => r.account_type);
+    expect(kinds).toContain('personal');
     expect(kinds).toContain('service');
-    expect(kinds).toContain('unattributed');
+    expect(kinds).toContain('end_user');
+    // Legacy admin keys with no account: full-NULL identity, real aggregates.
+    const orphan = parsed.data.find((r) => r.account_id === null);
+    expect(orphan).toBeDefined();
+    expect(orphan?.account_type).toBeNull();
+    expect(orphan?.requests).toBeGreaterThan(0);
   });
 
   it('parses the timeseries detail envelope (not list!)', () => {

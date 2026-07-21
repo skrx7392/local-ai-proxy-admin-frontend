@@ -11,7 +11,7 @@ import {
   registrationEvents,
   registrationTokens,
   usageByModel,
-  usageByUser,
+  usageByAccount,
   usageSummary,
   usageTimeseries,
   users,
@@ -223,9 +223,9 @@ export const handlers = [
     const url = new URL(request.url);
     return HttpResponse.json(envelope(usageByModel, url));
   }),
-  http.get(base('/usage/by-user'), ({ request }) => {
+  http.get(base('/usage/by-account'), ({ request }) => {
     const url = new URL(request.url);
-    return HttpResponse.json(envelope(usageByUser, url));
+    return HttpResponse.json(envelope(usageByAccount, url));
   }),
   http.get(base('/usage/timeseries'), () =>
     HttpResponse.json({ data: usageTimeseries }),

@@ -9,8 +9,8 @@ import type {
   CanonicalUsageFilters,
 } from './filters';
 import {
+  AccountUsageRowSchema,
   ModelUsageSchema,
-  OwnerUsageRowSchema,
   TimeseriesResponseSchema,
   UsageSummarySchema,
 } from './schemas';
@@ -51,17 +51,17 @@ export function useUsageByModel(filters: CanonicalUsageFilters | null) {
   });
 }
 
-export function useUsageByUser(filters: CanonicalUsageFilters | null) {
+export function useUsageByAccount(filters: CanonicalUsageFilters | null) {
   return useQuery({
     enabled: filters !== null,
     queryKey: filters
-      ? qk.usage.byUser(filters)
-      : (['usage', 'byUser', 'disabled'] as const),
+      ? qk.usage.byAccount(filters)
+      : (['usage', 'byAccount', 'disabled'] as const),
     queryFn: async () => {
-      const raw = await apiFetch<unknown>('/usage/by-user', {
+      const raw = await apiFetch<unknown>('/usage/by-account', {
         params: paramsFromFilters(filters!),
       });
-      return parseEnvelope(raw, OwnerUsageRowSchema);
+      return parseEnvelope(raw, AccountUsageRowSchema);
     },
   });
 }

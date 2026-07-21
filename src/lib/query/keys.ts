@@ -80,8 +80,8 @@ export const qk = {
       ['usage', 'summary', pickUsageFilters(filters)] as const,
     byModel: (filters: CanonicalUsageFilters) =>
       ['usage', 'byModel', pickUsageFilters(filters)] as const,
-    byUser: (filters: CanonicalUsageFilters) =>
-      ['usage', 'byUser', pickUsageFilters(filters)] as const,
+    byAccount: (filters: CanonicalUsageFilters) =>
+      ['usage', 'byAccount', pickUsageFilters(filters)] as const,
     timeseries: (filters: CanonicalTimeseriesFilters) =>
       ['usage', 'timeseries', pickTimeseriesFilters(filters)] as const,
   },
@@ -89,7 +89,7 @@ export const qk = {
 
 // Project to just the base usage fields so an upstream caller that
 // accidentally forwards a timeseries filter (with `interval`) to a
-// summary/byModel/byUser key doesn't silently carve out a second cache
+// summary/byModel/byAccount key doesn't silently carve out a second cache
 // entry per interval value. Key order must stay stable.
 function pickUsageFilters(f: CanonicalUsageFilters): CanonicalUsageFilters {
   const out: CanonicalUsageFilters = { since: f.since, until: f.until };

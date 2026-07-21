@@ -3,7 +3,7 @@
 import { Badge, Stack, Text } from '@chakra-ui/react';
 import type { ColumnDef } from '@tanstack/react-table';
 
-import type { ModelUsage, OwnerType, OwnerUsageRow } from './schemas';
+import type { AccountType, AccountUsageRow, ModelUsage } from './schemas';
 
 const nf = new Intl.NumberFormat(undefined);
 const cf = new Intl.NumberFormat(undefined, {
@@ -18,29 +18,29 @@ const secondsFmt = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
 });
 
-function OwnerTypeBadge({ type }: { type: OwnerType }) {
+// NULL account_type = the unattributed bucket (legacy admin keys with no
+// account). Rendered literally as "unattributed" rather than "—" so it isn't
+// confused with missing data.
+function AccountTypeBadge({ type }: { type: AccountType | null }) {
+  const label = type ?? 'unattributed';
   const palette =
-    type === 'user' ? 'blue' : type === 'service' ? 'purple' : 'gray';
+    type === 'personal'
+      ? 'blue'
+      : type === 'service'
+        ? 'purple'
+        : type === 'end_user'
+          ? 'teal'
+          : 'gray';
   return (
-    <Badge colorPalette={palette} data-testid={`owner-type-${type}`}>
-      {type}
+    <Badge colorPalette={palette} data-testid={`account-type-${label}`}>
+      {label}
     </Badge>
   );
 }
 
-// Human-readable owner label with explicit fallback for unattributed rows.
-// Per PLAN.md: users render by email, services by account_name, and
-// `unattributed` is shown literally rather than left as "—" so legacy
-// admin-created keys aren't confused with missing data.
-function ownerLabel(row: OwnerUsageRow): string {
-  if (row.owner_type === 'user') {
-    if (row.email) return row.name ? `${row.name} (${row.email})` : row.email;
-    return `user #${row.user_id ?? '?'}`;
-  }
-  if (row.owner_type === 'service') {
-    return row.account_name ?? `account #${row.account_id ?? '?'}`;
-  }
-  return 'unattributed';
+function accountLabel(row: AccountUsageRow): string {
+  if (row.account_id === null) return 'unattributed';
+  return row.account_name ?? `account #${row.account_id}`;
 }
 
 export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
@@ -101,25 +101,27 @@ export function buildModelUsageColumns(): ColumnDef<ModelUsage, unknown>[] {
   ];
 }
 
-export function buildOwnerUsageColumns(): ColumnDef<OwnerUsageRow, unknown>[] {
+export function buildAccountUsageColumns(): ColumnDef<AccountUsageRow, unknown>[] {
   return [
     {
       id: 'type',
       header: 'Type',
       size: 120,
-      cell: ({ row }) => <OwnerTypeBadge type={row.original.owner_type} />,
+      cell: ({ row }) => <AccountTypeBadge type={row.original.account_type} />,
     },
     {
-      id: 'owner',
-      header: 'Owner',
+      id: 'account',
+      header: 'Account',
       cell: ({ row }) => (
         <Stack gap="0.5">
-          <Text fontSize="sm">{ownerLabel(row.original)}</Text>
-          {row.original.account_type && (
-            <Text fontSize="xs" color="fg.muted">
-              {row.original.account_type}
-            </Text>
-          )}
+          <Text fontSize="sm">{accountLabel(row.original)}</Text>
+          {/* end_user account names default to the email — skip the echo. */}
+          {row.original.email &&
+            row.original.email !== row.original.account_name && (
+              <Text fontSize="xs" color="fg.muted">
+                {row.original.email}
+              </Text>
+            )}
         </Stack>
       ),
     },

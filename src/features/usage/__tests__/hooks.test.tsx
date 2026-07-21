@@ -9,8 +9,8 @@ import { useMockBackend } from '@/test/msw/useMockBackend';
 
 import { canonicalizeUsageFilters } from '../filters';
 import {
+  useUsageByAccount,
   useUsageByModel,
-  useUsageByUser,
   useUsageSummary,
   useUsageTimeseries,
 } from '../hooks';
@@ -53,13 +53,15 @@ describe('usage hooks — query params + envelope parsing', () => {
     expect(result.current.data?.pagination.total).toBeGreaterThan(0);
   });
 
-  it('useUsageByUser parses all three owner_type rows', async () => {
-    const { result } = renderHook(() => useUsageByUser(FILTERS), {
+  it('useUsageByAccount parses personal, service, end_user, and NULL rows', async () => {
+    const { result } = renderHook(() => useUsageByAccount(FILTERS), {
       wrapper: wrapper(),
     });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    const types = result.current.data?.data.map((r) => r.owner_type) ?? [];
-    expect(new Set(types).size).toBeGreaterThan(1);
+    const types = result.current.data?.data.map((r) => r.account_type) ?? [];
+    expect(types).toContain('end_user');
+    expect(types).toContain(null);
+    expect(new Set(types).size).toBeGreaterThan(2);
   });
 
   it('useUsageTimeseries parses the detail envelope (not list!)', async () => {

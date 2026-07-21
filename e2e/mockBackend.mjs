@@ -107,41 +107,42 @@ const usageByModel = [
   { model: 'llama3.1:70b', requests: 3360, total_tokens: 645054, credits: 27.69, avg_duration_ms: 442.1 },
 ];
 
-const usageByUser = [
+const usageByAccount = [
   {
-    owner_type: 'user',
-    user_id: 1,
-    email: 'admin@kinvee.in',
-    name: 'Krishna',
     account_id: 501,
     account_name: 'Default Admin Account',
     account_type: 'personal',
+    email: 'admin@kinvee.in',
     requests: 8120,
     total_tokens: 1102984,
     credits: 18.44,
     key_count: 2,
   },
   {
-    owner_type: 'service',
-    user_id: null,
-    email: null,
-    name: null,
     account_id: 502,
     account_name: 'Batch Pipeline',
     account_type: 'service',
+    email: null,
     requests: 4200,
     total_tokens: 928814,
     credits: 29.88,
     key_count: 1,
   },
   {
-    owner_type: 'unattributed',
-    user_id: null,
-    email: null,
-    name: null,
+    account_id: 503,
+    account_name: 'chat-user@example.com',
+    account_type: 'end_user',
+    email: 'chat-user@example.com',
+    requests: 310,
+    total_tokens: 84120,
+    credits: 0.03,
+    key_count: 1,
+  },
+  {
     account_id: null,
     account_name: null,
     account_type: null,
+    email: null,
     requests: 160,
     total_tokens: 15300,
     credits: 0.4,
@@ -525,15 +526,15 @@ const server = createServer(async (req, res) => {
   }
 
   // Usage analytics (BE 2). summary + timeseries use the detail envelope;
-  // by-model + by-user use the list envelope (locked decision #20).
+  // by-model + by-account use the list envelope (locked decision #20).
   if (adminPath === '/usage/summary' && method === 'GET') {
     return json(res, 200, { data: usageSummary });
   }
   if (adminPath === '/usage/by-model' && method === 'GET') {
     return json(res, 200, envelope(usageByModel, url));
   }
-  if (adminPath === '/usage/by-user' && method === 'GET') {
-    return json(res, 200, envelope(usageByUser, url));
+  if (adminPath === '/usage/by-account' && method === 'GET') {
+    return json(res, 200, envelope(usageByAccount, url));
   }
   if (adminPath === '/usage/timeseries' && method === 'GET') {
     return json(res, 200, { data: usageTimeseries });
