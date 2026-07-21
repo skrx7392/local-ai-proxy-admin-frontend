@@ -88,7 +88,11 @@ export function UsageFilterControls({
     filters.account_id !== undefined ||
       filters.api_key_id !== undefined ||
       filters.user_id !== undefined ||
-      filters.node_id !== undefined,
+      filters.node_id !== undefined ||
+      // An interval override lives in the Advanced row — a deep link
+      // carrying one must not hide its active setting behind a collapsed
+      // panel.
+      (showInterval && interval !== undefined),
   );
   const [customError, setCustomError] = useState<string | null>(null);
 
@@ -144,7 +148,8 @@ export function UsageFilterControls({
     filters.account_id !== undefined ||
     filters.api_key_id !== undefined ||
     filters.user_id !== undefined ||
-    filters.node_id !== undefined;
+    filters.node_id !== undefined ||
+    (showInterval && interval !== undefined);
 
   return (
     <Stack gap="3" data-testid="usage-filter-controls">
@@ -222,6 +227,19 @@ export function UsageFilterControls({
                 Interval
               </Text>
               <HStack gap="1">
+                {/* "auto" clears the override: the backend then picks hour
+                    for windows ≤48h and day beyond — without it a chosen
+                    interval silently persisted across range changes. */}
+                <Button
+                  size="xs"
+                  variant={interval === undefined ? 'solid' : 'outline'}
+                  onClick={() =>
+                    onChange({ interval: null }, { resetOffset: true })
+                  }
+                  data-testid="usage-filter-interval-auto"
+                >
+                  auto
+                </Button>
                 {(['hour', 'day'] as const).map((iv) => (
                   <Button
                     key={iv}

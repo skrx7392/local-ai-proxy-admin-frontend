@@ -92,6 +92,16 @@ describe('pivotModelSeries', () => {
     expect(rows[0]?.m['llama3.1:70b']?.p95_duration_ms).toBeNull();
   });
 
+  it('nullifies avg latency for zero-request buckets (idle is not "0s fast")', () => {
+    const rows = pivotModelSeries(series, ['avg_duration_ms'], {
+      avg_duration_ms: 1000,
+    });
+    // 70b bucket 0 is a gap cell: requests 0, avg 0 on the wire → null.
+    expect(rows[0]?.m['llama3.1:70b']?.avg_duration_ms).toBeNull();
+    // Real traffic keeps its (scaled) average.
+    expect(rows[1]?.m['llama3.1:70b']?.avg_duration_ms).toBeCloseTo(1.5, 6);
+  });
+
   it('carries multiple metrics per cell for dual-line charts', () => {
     const rows = pivotModelSeries(series, ['prompt_tokens', 'completion_tokens']);
     expect(rows[0]?.m['llama3.1:8b']?.prompt_tokens).toBe(8_000);

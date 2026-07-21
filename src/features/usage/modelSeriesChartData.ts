@@ -41,6 +41,14 @@ export function pivotModelSeries(
       const cell: Partial<Record<ModelMetricKey, number | null>> = {};
       for (const metric of metrics) {
         const v = b[metric];
+        // avg_duration_ms is 0 (not null) on the wire for zero-request
+        // buckets, but an average over nothing is undefined — plotting it
+        // would draw a "0s latency" dip for pure inactivity. Genuine zero
+        // durations (requests > 0) pass through.
+        if (metric === 'avg_duration_ms' && b.requests === 0) {
+          cell[metric] = null;
+          continue;
+        }
         cell[metric] = v === null ? null : v / (scaleByMetric[metric] ?? 1);
       }
       row.m[s.model] = cell;
