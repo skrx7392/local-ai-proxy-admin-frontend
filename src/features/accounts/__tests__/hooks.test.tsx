@@ -8,6 +8,7 @@ import { server } from '@/test/msw/server';
 import { useMockBackend } from '@/test/msw/useMockBackend';
 
 import {
+  TopUpPartialError,
   useAccountsList,
   useCreateAccountKey,
   useCreditRequests,
@@ -17,6 +18,21 @@ import {
   useTopUpCreditRequest,
 } from '../hooks';
 import type { CreditRequest } from '../schemas';
+
+// Wrapper variant that exposes the QueryClient so tests can observe
+// invalidation behavior (the onSettled contracts below).
+function wrapperWithClient() {
+  const client = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+  function Wrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  }
+  return { client, Wrapper };
+}
 
 function wrapper() {
   const client = new QueryClient({
@@ -231,6 +247,86 @@ describe('useTopUpCreditRequest', () => {
       ).rejects.toThrow();
     });
     expect(calls).toEqual(['resolve']);
+  });
+
+  it('throws TopUpPartialError and refetches the queue when the grant fails after marking', async () => {
+    server.use(
+      http.put('*/api/admin/credit-requests/:id', () =>
+        HttpResponse.json({ data: { id: 71, status: 'granted' } }),
+      ),
+      http.post('*/api/admin/accounts/:id/credits', () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'internal_error',
+              type: 'server_error',
+              message: 'boom',
+            },
+          },
+          { status: 500 },
+        ),
+      ),
+    );
+    const { client, Wrapper } = wrapperWithClient();
+    const invalidated: unknown[] = [];
+    const original = client.invalidateQueries.bind(client);
+    client.invalidateQueries = ((filters: { queryKey?: unknown }) => {
+      invalidated.push(filters?.queryKey);
+      return original(filters as never);
+    }) as typeof client.invalidateQueries;
+
+    const { result } = renderHook(() => useTopUpCreditRequest(), {
+      wrapper: Wrapper,
+    });
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          request: pendingRequest,
+          values: { amount: 5 },
+        }),
+      ).rejects.toBeInstanceOf(TopUpPartialError);
+    });
+    // The server-side row is granted with no money moved: the stale pending
+    // card must be refetched away even though the mutation failed.
+    expect(invalidated).toContainEqual(['creditRequests']);
+  });
+});
+
+describe('useResolveCreditRequest conflict handling', () => {
+  useMockBackend();
+
+  it('refetches the queue even when the PUT 409s (resolved elsewhere)', async () => {
+    server.use(
+      http.put('*/api/admin/credit-requests/:id', () =>
+        HttpResponse.json(
+          {
+            error: {
+              code: 'already_resolved',
+              type: 'invalid_request_error',
+              message: 'Credit request was already resolved',
+            },
+          },
+          { status: 409 },
+        ),
+      ),
+    );
+    const { client, Wrapper } = wrapperWithClient();
+    const invalidated: unknown[] = [];
+    const original = client.invalidateQueries.bind(client);
+    client.invalidateQueries = ((filters: { queryKey?: unknown }) => {
+      invalidated.push(filters?.queryKey);
+      return original(filters as never);
+    }) as typeof client.invalidateQueries;
+
+    const { result } = renderHook(() => useResolveCreditRequest(), {
+      wrapper: Wrapper,
+    });
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({ id: 71, status: 'dismissed' }),
+      ).rejects.toThrow();
+    });
+    expect(invalidated).toContainEqual(['creditRequests']);
   });
 });
 

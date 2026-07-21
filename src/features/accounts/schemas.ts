@@ -98,6 +98,24 @@ export const GrantCreditsFormSchema = z.object({
 export type GrantCreditsFormInput = z.input<typeof GrantCreditsFormSchema>;
 export type GrantCreditsFormValues = z.output<typeof GrantCreditsFormSchema>;
 
+// Top-up form: unlike the general grant form, ONLY positive amounts. A
+// negative value here would mark the credit request granted and then claw
+// back from an already-exhausted account.
+export const TopUpFormSchema = z.object({
+  amount: z.preprocess(
+    (value) => {
+      if (value === '' || value === undefined || value === null) return undefined;
+      const n = Number(value);
+      return Number.isNaN(n) ? value : n;
+    },
+    z.number().positive('Amount must be positive'),
+  ),
+  description: z.string().trim().max(500, 'Too long').optional(),
+});
+
+export type TopUpFormInput = z.input<typeof TopUpFormSchema>;
+export type TopUpFormValues = z.output<typeof TopUpFormSchema>;
+
 // Create-account-scoped-key — same wire shape as plain key create.
 export const AccountKeyFormSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(80),

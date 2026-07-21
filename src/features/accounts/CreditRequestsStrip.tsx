@@ -5,14 +5,15 @@ import { useState } from 'react';
 
 import { ApiError } from '@/lib/api/errors';
 
-import { GrantCreditsDialog } from './GrantCreditsDialog';
+import { TopUpDialog } from './TopUpDialog';
 import {
+  TopUpPartialError,
   useCreditRequests,
   useResolveCreditRequest,
   useTopUpCreditRequest,
 } from './hooks';
 
-import type { CreditRequest, GrantCreditsFormValues } from './schemas';
+import type { CreditRequest, TopUpFormValues } from './schemas';
 
 const money = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -21,10 +22,11 @@ const money = new Intl.NumberFormat('en-US', {
 });
 
 // Pending cap-hit requests (docs/design/credit-requests.md §6), surfaced
-// above the accounts table only when there is something to act on. Top up
-// marks the request granted first (idempotency lock, same contract as the
-// Discord bot) and then grants through the audited credits endpoint;
-// Dismiss silences the account for the rest of the month.
+// above the accounts table only when there is something to act on — or when
+// the queue itself can't be loaded, which must never masquerade as "all
+// clear". Top up marks the request granted first (idempotency lock, same
+// contract as the Discord bot) and then grants through the audited credits
+// endpoint; Dismiss silences the account for the rest of the month.
 export function CreditRequestsStrip() {
   const query = useCreditRequests('pending');
   const resolve = useResolveCreditRequest();
@@ -33,10 +35,39 @@ export function CreditRequestsStrip() {
   const [topUpTarget, setTopUpTarget] = useState<CreditRequest | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
 
+  if (query.isError) {
+    return (
+      <Box
+        borderWidth="1px"
+        borderColor="border.emphasized"
+        borderRadius="l2"
+        padding="4"
+        data-testid="credit-requests-strip-error"
+      >
+        <HStack justify="space-between" wrap="wrap" gap="2">
+          <Text role="alert" color="red.500" textStyle="body.sm">
+            Couldn&apos;t load pending credit requests — this is a load
+            failure, not an empty queue.
+          </Text>
+          <Button
+            size="xs"
+            variant="outline"
+            onClick={() => void query.refetch()}
+            data-testid="credit-requests-retry"
+          >
+            Retry
+          </Button>
+        </HStack>
+      </Box>
+    );
+  }
+
   const requests = query.data?.data ?? [];
+  const total = query.data?.pagination.total ?? requests.length;
   if (requests.length === 0) return null;
 
   function describe(err: unknown): string {
+    if (err instanceof TopUpPartialError) return err.message;
     if (err instanceof ApiError) {
       // 409 = already resolved elsewhere or expired at month rollover.
       return err.message;
@@ -44,7 +75,7 @@ export function CreditRequestsStrip() {
     return 'Action failed.';
   }
 
-  function handleTopUp(values: GrantCreditsFormValues): void {
+  function handleTopUp(values: TopUpFormValues): void {
     if (!topUpTarget) return;
     setError(undefined);
     topUp.mutate(
@@ -77,11 +108,15 @@ export function CreditRequestsStrip() {
     >
       <Stack gap="3">
         <HStack gap="2">
-          <Badge colorPalette="orange">{requests.length}</Badge>
+          <Badge colorPalette="orange">{total}</Badge>
           <Text fontWeight="semibold">
-            Credit request{requests.length === 1 ? '' : 's'} — monthly limit
-            reached
+            Credit request{total === 1 ? '' : 's'} — monthly limit reached
           </Text>
+          {total > requests.length && (
+            <Text fontSize="xs" color="fg.muted" data-testid="credit-requests-overflow">
+              showing {requests.length} of {total}
+            </Text>
+          )}
         </HStack>
 
         {error && (
@@ -142,9 +177,9 @@ export function CreditRequestsStrip() {
         })}
       </Stack>
 
-      <GrantCreditsDialog
+      <TopUpDialog
         isOpen={topUpTarget !== null}
-        accountName={topUpTarget?.email ?? topUpTarget?.account_name ?? null}
+        who={topUpTarget?.email ?? topUpTarget?.account_name ?? null}
         onOpenChange={(open) => {
           if (!open) setTopUpTarget(null);
         }}
