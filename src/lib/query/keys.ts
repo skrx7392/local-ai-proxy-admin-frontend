@@ -78,18 +78,23 @@ export const qk = {
     all: ['usage'] as const,
     summary: (filters: CanonicalUsageFilters) =>
       ['usage', 'summary', pickUsageFilters(filters)] as const,
-    byModel: (filters: CanonicalUsageFilters) =>
-      ['usage', 'byModel', pickUsageFilters(filters)] as const,
-    byUser: (filters: CanonicalUsageFilters) =>
-      ['usage', 'byUser', pickUsageFilters(filters)] as const,
+    byModel: (filters: CanonicalUsageFilters, page: ListPage) =>
+      ['usage', 'byModel', pickUsageFilters(filters), page.limit, page.offset] as const,
+    byAccount: (filters: CanonicalUsageFilters, page: ListPage) =>
+      ['usage', 'byAccount', pickUsageFilters(filters), page.limit, page.offset] as const,
     timeseries: (filters: CanonicalTimeseriesFilters) =>
       ['usage', 'timeseries', pickTimeseriesFilters(filters)] as const,
   },
 } as const;
 
+// The paginated list endpoints (by-model, by-account) partition their cache
+// by page as well — otherwise clicking Next only rewrites the URL and the
+// stale first page keeps rendering.
+export type ListPage = { limit: number; offset: number };
+
 // Project to just the base usage fields so an upstream caller that
 // accidentally forwards a timeseries filter (with `interval`) to a
-// summary/byModel/byUser key doesn't silently carve out a second cache
+// summary/byModel/byAccount key doesn't silently carve out a second cache
 // entry per interval value. Key order must stay stable.
 function pickUsageFilters(f: CanonicalUsageFilters): CanonicalUsageFilters {
   const out: CanonicalUsageFilters = { since: f.since, until: f.until };

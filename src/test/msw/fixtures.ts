@@ -154,7 +154,7 @@ export const registrationEvents = [
 // revoked (not is_active), expires_at nullable.
 // Usage analytics fixtures. Match the BE 2 wire shapes locked in PLAN.md #20.
 // summary → detail envelope (`{data: obj}`), timeseries → same; by-model and
-// by-user → list envelope (`{data: [...], pagination}`).
+// by-account → list envelope (`{data: [...], pagination}`).
 
 export const usageSummary = {
   requests: 12_480,
@@ -193,41 +193,46 @@ export const usageByModel = [
   },
 ] as const;
 
-export const usageByUser = [
+// Ordered by total_tokens desc to mirror the backend. Covers all four
+// populations: personal (email = owning user), service (no email), end_user
+// (email = federated identity, EUA), and the NULL-identity unattributed row
+// for legacy admin keys.
+export const usageByAccount = [
   {
-    owner_type: 'user' as const,
-    user_id: 1,
-    email: 'admin@kinvee.in',
-    name: 'Krishna',
     account_id: 501,
     account_name: 'Default Admin Account',
     account_type: 'personal' as const,
+    email: 'admin@kinvee.in',
     requests: 8_120,
     total_tokens: 1_102_984,
     credits: 18.44,
     key_count: 2,
   },
   {
-    owner_type: 'service' as const,
-    user_id: null,
-    email: null,
-    name: null,
     account_id: 502,
     account_name: 'Batch Pipeline',
     account_type: 'service' as const,
+    email: null,
     requests: 4_200,
     total_tokens: 928_814,
     credits: 29.88,
     key_count: 1,
   },
   {
-    owner_type: 'unattributed' as const,
-    user_id: null,
-    email: null,
-    name: null,
+    account_id: 503,
+    account_name: 'chat-user@example.com',
+    account_type: 'end_user' as const,
+    email: 'chat-user@example.com',
+    requests: 310,
+    total_tokens: 84_120,
+    credits: 0.03,
+    key_count: 1,
+  },
+  {
     account_id: null,
     account_name: null,
     account_type: null,
+    email: null,
     requests: 160,
     total_tokens: 15_300,
     credits: 0.4,

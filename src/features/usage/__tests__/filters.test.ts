@@ -165,7 +165,7 @@ describe('canonical filters → query key equality', () => {
     );
   });
 
-  it('summary / byModel / byUser keys do not include interval', () => {
+  it('summary / byModel / byAccount keys do not include interval', () => {
     const withInterval = canonicalizeTimeseriesFilters({
       since: ISO_A,
       until: ISO_B,

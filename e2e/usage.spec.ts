@@ -120,8 +120,8 @@ test.describe('mockBackend usage endpoints (wire shapes)', () => {
     expect(body.pagination).toBeUndefined();
   });
 
-  test('by-model / by-user use the list envelope', async ({ request }) => {
-    for (const path of ['by-model', 'by-user']) {
+  test('by-model / by-account use the list envelope', async ({ request }) => {
+    for (const path of ['by-model', 'by-account']) {
       const response = await request.get(
         `${MOCK_BACKEND}/api/admin/usage/${path}`,
         { headers: { Authorization: 'Bearer fake' } },

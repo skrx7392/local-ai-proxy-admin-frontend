@@ -3,7 +3,7 @@ import { z } from 'zod';
 // Mirrors PLAN.md "Locked Decisions" #20 + "Analytics HTTP wire shapes (PR 2)".
 // Two envelope flavors are in use:
 //   - summary, timeseries   → detail envelope  `{data: obj}`           → parseDataEnvelope
-//   - by-model, by-user     → list envelope    `{data: [...], pagination}` → parseEnvelope
+//   - by-model, by-account  → list envelope    `{data: [...], pagination}` → parseEnvelope
 //
 // A deviation here versus the backend's JSON output is a merge blocker on either
 // side — FE F and BE 2 share this contract and keep the Zod schemas loud on the
@@ -29,23 +29,24 @@ export const ModelUsageSchema = z.object({
 });
 export type ModelUsage = z.infer<typeof ModelUsageSchema>;
 
-export const OwnerTypeSchema = z.enum(['user', 'service', 'unattributed']);
-export type OwnerType = z.infer<typeof OwnerTypeSchema>;
+// Billing-account grouping (replaced the by-user owner grouping after EUA):
+// account_type null + account_id null = the single unattributed bucket for
+// legacy admin keys with no account. email is display metadata — federated
+// identity email for end_user accounts, owning user's email for personal.
+export const AccountTypeSchema = z.enum(['personal', 'service', 'end_user']);
+export type AccountType = z.infer<typeof AccountTypeSchema>;
 
-export const OwnerUsageRowSchema = z.object({
-  owner_type: OwnerTypeSchema,
-  user_id: z.number().int().nullable(),
-  email: z.string().nullable(),
-  name: z.string().nullable(),
+export const AccountUsageRowSchema = z.object({
   account_id: z.number().int().nullable(),
   account_name: z.string().nullable(),
-  account_type: z.enum(['personal', 'service']).nullable(),
+  account_type: AccountTypeSchema.nullable(),
+  email: z.string().nullable(),
   requests: z.number().int().nonnegative(),
   total_tokens: z.number().int().nonnegative(),
   credits: z.number().nonnegative(),
   key_count: z.number().int().nonnegative(),
 });
-export type OwnerUsageRow = z.infer<typeof OwnerUsageRowSchema>;
+export type AccountUsageRow = z.infer<typeof AccountUsageRowSchema>;
 
 export const TimeseriesBucketSchema = z.object({
   // RFC3339 string; bucket alignment comes from the handler (not SQL).
