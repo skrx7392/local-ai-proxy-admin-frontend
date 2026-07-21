@@ -15,10 +15,20 @@ import { qualitativeAt, rechartsTheme } from '@/theme';
 
 import { CHART_ENTER_ANIMATION, ChartFrame } from './ChartFrame';
 
-import type { ModelUsage } from '@/features/usage/schemas';
+/**
+ * Minimal row shape the chart actually reads. Both the paginated table rows
+ * (ModelUsage) and series-derived window totals satisfy it — sourcing bars
+ * from an unpaginated dataset must not require fabricating full table rows.
+ */
+export interface ModelBreakdownDatum {
+  model: string;
+  total_tokens: number;
+  requests: number;
+  credits: number;
+}
 
 export interface ModelBreakdownChartProps {
-  data: readonly ModelUsage[];
+  data: readonly ModelBreakdownDatum[];
   metric?: 'total_tokens' | 'requests' | 'credits';
   topN?: number;
   height?: number;

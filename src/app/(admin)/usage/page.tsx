@@ -253,6 +253,20 @@ function ByModelPanel({
     () => seriesQuery.data?.series ?? [],
     [seriesQuery.data],
   );
+  // Bar charts aggregate the series, NOT the table rows: `rows` is one
+  // pagination page ordered by tokens, so a paged table would reshuffle the
+  // charts and hide high-credit models outside the page. The series is the
+  // global top-N for the whole window — same dataset the line charts draw.
+  const chartRows = useMemo(
+    () =>
+      series.map((s) => ({
+        model: s.model,
+        requests: s.buckets.reduce((acc, b) => acc + b.requests, 0),
+        total_tokens: s.buckets.reduce((acc, b) => acc + b.total_tokens, 0),
+        credits: s.buckets.reduce((acc, b) => acc + b.credits, 0),
+      })),
+    [series],
+  );
   // One color per model across every chart on this tab. Series order
   // (window token totals desc) is canonical; table-only models append.
   const colorFor = useMemo(() => {
@@ -266,23 +280,26 @@ function ByModelPanel({
   if (!canonical) return <InvalidRange />;
   const total = query.data?.pagination.total ?? 0;
   const interval = seriesQuery.data?.interval ?? 'hour';
-  const chartsLoading = query.isLoading || seriesQuery.isLoading;
+  const chartsLoading = seriesQuery.isLoading;
 
   return (
     <Stack gap="4" paddingTop="4">
-      {/* Skeleton mirrors the grid so the loading → loaded swap cannot shift
-          the table (and click targets) below it. */}
+      {/* Skeleton mirrors the loaded grid card-for-card (7 charts) so the
+          loading → loaded swap cannot shift the table (and click targets)
+          below it. */}
       {chartsLoading ? (
         <SimpleGrid columns={{ base: 1, xl: 2 }} gap="4">
-          <ChartSkeleton height={280} />
-          <ChartSkeleton height={280} />
+          {Array.from({ length: 7 }, (_, i) => (
+            <ChartSkeleton key={i} height={300} />
+          ))}
         </SimpleGrid>
-      ) : rows.length > 0 ? (
+      ) : series.length > 0 ? (
         <SimpleGrid columns={{ base: 1, xl: 2 }} gap="4">
           <ChartCard title="Total tokens by model">
             <ModelBreakdownChart
-              data={rows}
+              data={chartRows}
               metric="total_tokens"
+              topN={12}
               colorFor={colorFor}
               height={240}
               minHeight={200}
@@ -305,8 +322,9 @@ function ByModelPanel({
           </ChartCard>
           <ChartCard title="Credits by model">
             <ModelBreakdownChart
-              data={rows}
+              data={chartRows}
               metric="credits"
+              topN={12}
               colorFor={colorFor}
               height={240}
               minHeight={200}

@@ -3,6 +3,9 @@
  * every chart; never reach for UI semantic colors inside a chart.
  */
 
+// 12 entries — must stay >= the backend's timeseries-by-model series cap
+// (maxTimeseriesModels), or two models on the By-model charts would share a
+// color and become indistinguishable.
 export const qualitativePalette = [
   '#60a5fa',
   '#a78bfa',
@@ -14,6 +17,8 @@ export const qualitativePalette = [
   '#4ade80',
   '#f59e0b',
   '#818cf8',
+  '#2dd4bf',
+  '#a3e635',
 ] as const;
 
 /** Sequential scale — accent-anchored (low → high intensity). */
