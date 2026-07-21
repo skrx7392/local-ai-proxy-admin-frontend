@@ -286,6 +286,7 @@ function ByModelPanel({
               colorFor={colorFor}
               height={240}
               minHeight={200}
+              testId="by-model-chart-tokens"
             />
           </ChartCard>
           <ChartCard
@@ -309,6 +310,7 @@ function ByModelPanel({
               colorFor={colorFor}
               height={240}
               minHeight={200}
+              testId="by-model-chart-credits"
             />
           </ChartCard>
           <ChartCard

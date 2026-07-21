@@ -28,6 +28,8 @@ export interface ModelBreakdownChartProps {
    * keeps one identity everywhere. Omitted = single palette color.
    */
   colorFor?: (model: string) => string;
+  /** Override when a page renders more than one breakdown chart. */
+  testId?: string;
 }
 
 const METRIC_LABEL: Record<
@@ -46,6 +48,7 @@ export function ModelBreakdownChart({
   height = 280,
   minHeight = 240,
   colorFor,
+  testId = 'model-breakdown-chart',
 }: ModelBreakdownChartProps) {
   // Copy before sorting — `data` comes from react-query and mutating the
   // cached array would silently desync later readers that expect server order.
@@ -60,7 +63,7 @@ export function ModelBreakdownChart({
       height={height}
       minHeight={minHeight}
       ariaLabel={`${METRIC_LABEL[metric]} by model`}
-      testId="model-breakdown-chart"
+      testId={testId}
     >
       {({ width, height: chartHeight }) => (
         <BarChart
