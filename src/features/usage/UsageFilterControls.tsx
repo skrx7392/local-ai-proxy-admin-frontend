@@ -234,12 +234,13 @@ export function UsageFilterControls({
                 {/* "auto" clears the override: the backend then picks hour
                     for windows ≤48h and day beyond — without it a chosen
                     interval silently persisted across range changes. */}
+                {/* Interval feeds only the timeseries charts — never the
+                    paginated table queries — so changing it must not reset
+                    the table's offset. */}
                 <Button
                   size="xs"
                   variant={interval === undefined ? 'solid' : 'outline'}
-                  onClick={() =>
-                    onChange({ interval: null }, { resetOffset: true })
-                  }
+                  onClick={() => onChange({ interval: null })}
                   data-testid="usage-filter-interval-auto"
                 >
                   auto
@@ -249,9 +250,7 @@ export function UsageFilterControls({
                     key={iv}
                     size="xs"
                     variant={interval === iv ? 'solid' : 'outline'}
-                    onClick={() =>
-                      onChange({ interval: iv }, { resetOffset: true })
-                    }
+                    onClick={() => onChange({ interval: iv })}
                     data-testid={`usage-filter-interval-${iv}`}
                   >
                     {iv}
