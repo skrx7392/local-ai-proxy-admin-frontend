@@ -189,6 +189,44 @@ const usageTimeseries = {
   })),
 };
 
+// Per-model timeseries for the By-model charts. Dense shared bucket axis;
+// llama3.1:70b bucket 0 is a gap cell (zero counts, null speed/p95).
+const usageTimeseriesByModel = {
+  interval: 'hour',
+  series: [
+    {
+      model: 'llama3.1:8b',
+      buckets: Array.from({ length: 6 }, (_, i) => ({
+        bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+        requests: 300 + ((i * 41) % 120),
+        errors: i % 3,
+        prompt_tokens: 20000 + ((i * 997) % 5000),
+        completion_tokens: 34000 + ((i * 1501) % 8000),
+        total_tokens: 54000 + ((i * 2498) % 13000),
+        credits: +(0.8 + i * 0.11).toFixed(4),
+        tok_per_sec: +(84 + ((i * 3.7) % 12)).toFixed(1),
+        avg_duration_ms: 290 + ((i * 17) % 60),
+        p95_duration_ms: 590 + ((i * 29) % 120),
+      })),
+    },
+    {
+      model: 'llama3.1:70b',
+      buckets: Array.from({ length: 6 }, (_, i) => ({
+        bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+        requests: i === 0 ? 0 : 40 + ((i * 13) % 30),
+        errors: i === 0 ? 0 : i % 2,
+        prompt_tokens: i === 0 ? 0 : 9000 + ((i * 587) % 3000),
+        completion_tokens: i === 0 ? 0 : 5000 + ((i * 733) % 2000),
+        total_tokens: i === 0 ? 0 : 14000 + ((i * 1320) % 5000),
+        credits: i === 0 ? 0 : +(0.6 + i * 0.09).toFixed(4),
+        tok_per_sec: i === 0 ? null : +(23 + ((i * 1.3) % 4)).toFixed(1),
+        avg_duration_ms: i === 0 ? 0 : 1400 + ((i * 43) % 220),
+        p95_duration_ms: i === 0 ? null : 2300 + ((i * 71) % 400),
+      })),
+    },
+  ],
+};
+
 const registrationEvents = [
   {
     id: 1,
@@ -564,6 +602,9 @@ const server = createServer(async (req, res) => {
   }
   if (adminPath === '/usage/timeseries' && method === 'GET') {
     return json(res, 200, { data: usageTimeseries });
+  }
+  if (adminPath === '/usage/timeseries-by-model' && method === 'GET') {
+    return json(res, 200, { data: usageTimeseriesByModel });
   }
 
   // Nodes (Distributed Nodes FE-1). `{data}` envelope everywhere;

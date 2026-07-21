@@ -10,6 +10,7 @@ import type {
 } from './filters';
 import {
   AccountUsageRowSchema,
+  ModelTimeseriesResponseSchema,
   ModelUsageSchema,
   TimeseriesResponseSchema,
   UsageSummarySchema,
@@ -96,6 +97,25 @@ export function useUsageTimeseries(filters: CanonicalTimeseriesFilters | null) {
       if (filters!.interval) params.interval = filters!.interval;
       const raw = await apiFetch<unknown>('/usage/timeseries', { params });
       return parseDataEnvelope(raw, TimeseriesResponseSchema);
+    },
+  });
+}
+
+export function useUsageTimeseriesByModel(
+  filters: CanonicalTimeseriesFilters | null,
+) {
+  return useQuery({
+    enabled: filters !== null,
+    queryKey: filters
+      ? qk.usage.timeseriesByModel(filters)
+      : (['usage', 'timeseriesByModel', 'disabled'] as const),
+    queryFn: async () => {
+      const params = paramsFromFilters(filters!);
+      if (filters!.interval) params.interval = filters!.interval;
+      const raw = await apiFetch<unknown>('/usage/timeseries-by-model', {
+        params,
+      });
+      return parseDataEnvelope(raw, ModelTimeseriesResponseSchema);
     },
   });
 }

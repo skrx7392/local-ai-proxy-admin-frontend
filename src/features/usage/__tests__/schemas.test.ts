@@ -6,10 +6,12 @@ import {
   usageByModel,
   usageSummary,
   usageTimeseries,
+  usageTimeseriesByModel,
 } from '@/test/msw/fixtures';
 
 import {
   AccountUsageRowSchema,
+  ModelTimeseriesResponseSchema,
   ModelUsageSchema,
   TimeseriesResponseSchema,
   UsageSummarySchema,
@@ -101,6 +103,26 @@ describe('usage schemas — exact BE 2 envelope shapes', () => {
     expect(parsed.interval).toBe('hour');
     expect(parsed.buckets).toHaveLength(24);
     expect(parsed.buckets[0]?.bucket).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('parses the timeseries-by-model detail envelope with null metric cells', () => {
+    const parsed = parseDataEnvelope(
+      { data: usageTimeseriesByModel },
+      ModelTimeseriesResponseSchema,
+    );
+    expect(parsed.interval).toBe('hour');
+    expect(parsed.series.length).toBeGreaterThan(1);
+    const first = parsed.series[0];
+    expect(first?.model).toBe('llama3.1:8b');
+    // Every series is gap-filled to the same dense bucket axis.
+    for (const s of parsed.series) {
+      expect(s.buckets).toHaveLength(first!.buckets.length);
+    }
+    // Zero-traffic cells carry null speed/p95 (never 0 = "instant").
+    const gappy = parsed.series.find((s) =>
+      s.buckets.some((b) => b.tok_per_sec === null),
+    );
+    expect(gappy).toBeDefined();
   });
 
   it('rejects a timeseries response in list shape (locked decision #20)', () => {

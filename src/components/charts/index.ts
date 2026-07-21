@@ -6,3 +6,7 @@ export { StatCard } from './StatCard';
 export type { StatCardProps } from './StatCard';
 export { ModelBreakdownChart } from './ModelBreakdownChart';
 export type { ModelBreakdownChartProps } from './ModelBreakdownChart';
+export { ModelMetricLineChart } from './ModelMetricLineChart';
+export type { ModelMetricLineChartProps } from './ModelMetricLineChart';
+export { ChartCard } from './ChartCard';
+export type { ChartCardProps } from './ChartCard';

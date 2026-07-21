@@ -14,6 +14,7 @@ import {
   usageByAccount,
   usageSummary,
   usageTimeseries,
+  usageTimeseriesByModel,
   users,
 } from './fixtures';
 
@@ -229,6 +230,9 @@ export const handlers = [
   }),
   http.get(base('/usage/timeseries'), () =>
     HttpResponse.json({ data: usageTimeseries }),
+  ),
+  http.get(base('/usage/timeseries-by-model'), () =>
+    HttpResponse.json({ data: usageTimeseriesByModel }),
   ),
 
   // ---- Nodes (Distributed Nodes FE-1) ----

@@ -5,6 +5,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Tooltip,
   XAxis,
   YAxis,
@@ -22,6 +23,11 @@ export interface ModelBreakdownChartProps {
   topN?: number;
   height?: number;
   minHeight?: number;
+  /**
+   * Per-model bar color, shared with the page's other charts so a model
+   * keeps one identity everywhere. Omitted = single palette color.
+   */
+  colorFor?: (model: string) => string;
 }
 
 const METRIC_LABEL: Record<
@@ -39,6 +45,7 @@ export function ModelBreakdownChart({
   topN = 10,
   height = 280,
   minHeight = 240,
+  colorFor,
 }: ModelBreakdownChartProps) {
   // Copy before sorting — `data` comes from react-query and mutating the
   // cached array would silently desync later readers that expect server order.
@@ -92,7 +99,10 @@ export function ModelBreakdownChart({
             fill={qualitativeAt(0)}
             radius={[4, 4, 0, 0]}
             isAnimationActive={CHART_ENTER_ANIMATION}
-          />
+          >
+            {colorFor &&
+              rows.map((r) => <Cell key={r.model} fill={colorFor(r.model)} />)}
+          </Bar>
         </BarChart>
       )}
     </ChartFrame>

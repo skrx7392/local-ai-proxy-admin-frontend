@@ -277,6 +277,61 @@ export const usageTimeseries = {
   })),
 };
 
+// Per-model timeseries for the By-model charts. All series share one dense
+// 6-bucket hourly axis (backend gap-fills); llama3.1:70b's first bucket is a
+// gap cell — zero counts with NULL speed/p95, exercising the "null renders a
+// line gap, never zero" path.
+export const usageTimeseriesByModel = {
+  interval: 'hour' as const,
+  series: [
+    {
+      model: 'llama3.1:8b',
+      buckets: Array.from({ length: 6 }, (_, i) => ({
+        bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+        requests: 300 + ((i * 41) % 120),
+        errors: i % 3,
+        prompt_tokens: 20_000 + ((i * 997) % 5_000),
+        completion_tokens: 34_000 + ((i * 1_501) % 8_000),
+        total_tokens: 54_000 + ((i * 2_498) % 13_000),
+        credits: +(0.8 + i * 0.11).toFixed(4),
+        tok_per_sec: +(84 + ((i * 3.7) % 12)).toFixed(1),
+        avg_duration_ms: 290 + ((i * 17) % 60),
+        p95_duration_ms: 590 + ((i * 29) % 120),
+      })),
+    },
+    {
+      model: 'llama3.1:70b',
+      buckets: Array.from({ length: 6 }, (_, i) => ({
+        bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+        requests: i === 0 ? 0 : 40 + ((i * 13) % 30),
+        errors: i === 0 ? 0 : i % 2,
+        prompt_tokens: i === 0 ? 0 : 9_000 + ((i * 587) % 3_000),
+        completion_tokens: i === 0 ? 0 : 5_000 + ((i * 733) % 2_000),
+        total_tokens: i === 0 ? 0 : 14_000 + ((i * 1_320) % 5_000),
+        credits: i === 0 ? 0 : +(0.6 + i * 0.09).toFixed(4),
+        tok_per_sec: i === 0 ? null : +(23 + ((i * 1.3) % 4)).toFixed(1),
+        avg_duration_ms: i === 0 ? 0 : 1_400 + ((i * 43) % 220),
+        p95_duration_ms: i === 0 ? null : 2_300 + ((i * 71) % 400),
+      })),
+    },
+    {
+      model: 'gemma4:e2b',
+      buckets: Array.from({ length: 6 }, (_, i) => ({
+        bucket: new Date(Date.UTC(2026, 3, 14, i, 0, 0)).toISOString(),
+        requests: 25 + ((i * 7) % 15),
+        errors: 0,
+        prompt_tokens: 6_000 + ((i * 311) % 1_500),
+        completion_tokens: 6_500 + ((i * 449) % 1_800),
+        total_tokens: 12_500 + ((i * 760) % 3_300),
+        credits: +(0.3 + i * 0.05).toFixed(4),
+        tok_per_sec: +(94 + ((i * 2.1) % 6)).toFixed(1),
+        avg_duration_ms: 260 + ((i * 11) % 40),
+        p95_duration_ms: 520 + ((i * 19) % 90),
+      })),
+    },
+  ],
+};
+
 export const registrationTokens = [
   {
     id: 301,
