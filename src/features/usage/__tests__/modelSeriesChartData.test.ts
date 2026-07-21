@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { ModelSeries } from '../schemas';
 import {
   buildModelColorOrder,
+  isIsolatedSample,
   pivotModelSeries,
 } from '../modelSeriesChartData';
 
@@ -130,6 +131,35 @@ describe('pivotModelSeries', () => {
     const rows = pivotModelSeries(ragged, ['requests']);
     expect(rows[0]?.m['short']).toBeUndefined();
     expect(rows[1]?.m['short']?.requests).toBe(12);
+  });
+});
+
+describe('isIsolatedSample', () => {
+  const rows = [
+    { bucket: 'b0', m: { x: { tok_per_sec: null } } },
+    { bucket: 'b1', m: { x: { tok_per_sec: 50 } } },
+    { bucket: 'b2', m: { x: { tok_per_sec: null } } },
+    { bucket: 'b3', m: { x: { tok_per_sec: 60 } } },
+    { bucket: 'b4', m: { x: { tok_per_sec: 70 } } },
+  ];
+
+  it('flags a value surrounded by nulls (no line segment would be drawn)', () => {
+    expect(isIsolatedSample(rows, 'x', 'tok_per_sec', 1)).toBe(true);
+  });
+
+  it('does not flag values with a drawable neighbor', () => {
+    expect(isIsolatedSample(rows, 'x', 'tok_per_sec', 3)).toBe(false);
+    expect(isIsolatedSample(rows, 'x', 'tok_per_sec', 4)).toBe(false);
+  });
+
+  it('does not flag null cells themselves', () => {
+    expect(isIsolatedSample(rows, 'x', 'tok_per_sec', 2)).toBe(false);
+  });
+
+  it('flags a single-bucket window (both neighbors out of range)', () => {
+    expect(
+      isIsolatedSample([rows[1]!], 'x', 'tok_per_sec', 0),
+    ).toBe(true);
   });
 });
 

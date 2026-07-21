@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, type Key } from 'react';
 import {
   CartesianGrid,
   Legend,
@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 
 import {
+  isIsolatedSample,
   pivotModelSeries,
   type ModelMetricKey,
   type ModelSeriesChartRow,
@@ -56,6 +57,35 @@ export interface ModelMetricLineChartProps {
   height?: number;
   minHeight?: number;
   testId?: string;
+}
+
+// Recharts hands each dot its row index; a sample with null on both sides
+// gets no connecting line segment, so it must render a visible marker or a
+// real measurement disappears. All other points stay dotless (r=0).
+interface LineDotProps {
+  key?: Key | null | undefined;
+  cx?: number | undefined;
+  cy?: number | undefined;
+  index?: number | undefined;
+}
+
+function makeIsolatedDot(
+  data: ModelSeriesChartRow[],
+  model: string,
+  metric: ModelMetricKey,
+  color: string,
+) {
+  return function IsolatedDot({ key, cx, cy, index }: LineDotProps) {
+    if (
+      cx === undefined ||
+      cy === undefined ||
+      index === undefined ||
+      !isIsolatedSample(data, model, metric, index)
+    ) {
+      return <circle key={key} r={0} />;
+    }
+    return <circle key={key} cx={cx} cy={cy} r={3} fill={color} />;
+  };
 }
 
 export function ModelMetricLineChart({
@@ -134,7 +164,7 @@ export function ModelMetricLineChart({
               name={s.model}
               stroke={colorFor(s.model)}
               strokeWidth={2}
-              dot={false}
+              dot={makeIsolatedDot(data, s.model, metric, colorFor(s.model))}
               isAnimationActive={CHART_ENTER_ANIMATION}
             />
           ))}
@@ -150,7 +180,12 @@ export function ModelMetricLineChart({
                 stroke={colorFor(s.model)}
                 strokeWidth={1.5}
                 strokeDasharray="5 3"
-                dot={false}
+                dot={makeIsolatedDot(
+                  data,
+                  s.model,
+                  secondaryMetric,
+                  colorFor(s.model),
+                )}
                 legendType="none"
                 isAnimationActive={CHART_ENTER_ANIMATION}
               />

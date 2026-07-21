@@ -64,6 +64,26 @@ export function pivotModelSeries(
 }
 
 /**
+ * True when the sample at `index` has a value but both neighbors don't —
+ * recharts draws no line segment for it, and without a marker a real
+ * measurement would be invisible (common for sparse speed/p95 series, or a
+ * one-bucket window). Charts render a dot exactly for these samples.
+ */
+export function isIsolatedSample(
+  rows: readonly ModelSeriesChartRow[],
+  model: string,
+  metric: ModelMetricKey,
+  index: number,
+): boolean {
+  const value = rows[index]?.m[model]?.[metric];
+  if (value === null || value === undefined) return false;
+  const prev = index > 0 ? rows[index - 1]?.m[model]?.[metric] : undefined;
+  const next =
+    index < rows.length - 1 ? rows[index + 1]?.m[model]?.[metric] : undefined;
+  return (prev === null || prev === undefined) && (next === null || next === undefined);
+}
+
+/**
  * Stable model → palette-index order shared by every chart on the page, so
  * "llama3.1:8b" is the same color in the tokens bar chart and the speed line
  * chart. Series order (backend: window token totals desc) wins; models that

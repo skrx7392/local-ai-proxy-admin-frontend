@@ -295,7 +295,10 @@ function ByModelPanel({
         </SimpleGrid>
       ) : series.length > 0 ? (
         <SimpleGrid columns={{ base: 1, xl: 2 }} gap="4">
-          <ChartCard title="Total tokens by model">
+          <ChartCard
+            title="Total tokens by model"
+            hint="top 12 models by window token volume"
+          >
             <ModelBreakdownChart
               data={chartRows}
               metric="total_tokens"
@@ -320,7 +323,10 @@ function ByModelPanel({
               testId="by-model-chart-requests"
             />
           </ChartCard>
-          <ChartCard title="Credits by model">
+          <ChartCard
+            title="Credits by model"
+            hint="within the top 12 models by window token volume"
+          >
             <ModelBreakdownChart
               data={chartRows}
               metric="credits"
