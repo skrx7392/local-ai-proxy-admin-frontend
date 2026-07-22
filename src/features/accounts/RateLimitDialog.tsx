@@ -72,7 +72,13 @@ export function RateLimitDialog({
   return (
     <Dialog.Root
       open={isOpen}
-      onOpenChange={(details: { open: boolean }) => onOpenChange(details.open)}
+      onOpenChange={(details: { open: boolean }) => {
+        // Ignore Escape/outside-click dismissal while the mutation is
+        // pending: a mid-flight close lets the settle callbacks fire
+        // against whichever dialog the user opened next.
+        if (isSubmitting && !details.open) return;
+        onOpenChange(details.open);
+      }}
     >
       <Portal>
         <Dialog.Backdrop />

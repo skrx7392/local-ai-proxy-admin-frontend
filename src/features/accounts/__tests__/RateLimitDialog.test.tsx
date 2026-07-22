@@ -92,6 +92,32 @@ describe('RateLimitDialog', () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it('ignores Escape dismissal while the mutation is pending', async () => {
+    const onOpenChange = vi.fn();
+    wrap({ isSubmitting: true, onOpenChange });
+    await waitFor(() =>
+      expect(screen.getByTestId('ratelimit-dialog')).toBeInTheDocument(),
+    );
+    fireEvent.keyDown(screen.getByTestId('ratelimit-dialog'), {
+      key: 'Escape',
+    });
+    // A mid-flight close would let the settle callbacks act on whichever
+    // dialog the user opened next.
+    expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('allows Escape dismissal when idle', async () => {
+    const onOpenChange = vi.fn();
+    wrap({ onOpenChange });
+    await waitFor(() =>
+      expect(screen.getByTestId('ratelimit-dialog')).toBeInTheDocument(),
+    );
+    fireEvent.keyDown(screen.getByTestId('ratelimit-dialog'), {
+      key: 'Escape',
+    });
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
   it('routes "Use default" to the explicit clear action', async () => {
     const { onSubmit, onUseDefault } = wrap();
     fireEvent.click(screen.getByTestId('ratelimit-use-default'));
