@@ -18,6 +18,11 @@ export const AccountSchema = z.object({
   monthly_grant: z.number().nullable(),
   effective_monthly_grant: z.number().nullable(),
   email: z.string().nullable(),
+  // Per-account request rate limit (docs/design/per-account-rate-limiting.md
+  // §4.3). effective_* resolves the override against the class env default
+  // server-side and is never null — every account has a limit.
+  rate_limit_per_min: z.number().int().nullable(),
+  effective_rate_limit_per_min: z.number().int(),
 });
 
 export type Account = z.infer<typeof AccountSchema>;
@@ -68,6 +73,34 @@ export const AllowanceFormSchema = z.object({
 
 export type AllowanceFormInput = z.input<typeof AllowanceFormSchema>;
 export type AllowanceFormValues = z.output<typeof AllowanceFormSchema>;
+
+// PUT /api/admin/accounts/{id}/rate-limit response.
+export const SetRateLimitResponseSchema = z.object({
+  status: z.literal('updated'),
+  rate_limit_per_min: z.number().int().nullable(),
+});
+
+// Rate-limit editor form. A number sets a per-account override; clearing
+// back to the class default is the explicit "Use default" action (null on
+// the wire — the backend 400s an absent field). Explicit 0 is rejected
+// server-side too: blocking is the job of credits/deactivation, not a 429.
+export const RateLimitFormSchema = z.object({
+  rate_limit_per_min: z.preprocess(
+    (value) => {
+      if (value === '' || value === undefined || value === null) return undefined;
+      const n = Number(value);
+      return Number.isNaN(n) ? value : n;
+    },
+    z
+      .number()
+      .int('Rate limit must be an integer')
+      .min(1, 'Rate limit must be at least 1')
+      .max(10_000, 'Rate limit cannot exceed 10,000'),
+  ),
+});
+
+export type RateLimitFormInput = z.input<typeof RateLimitFormSchema>;
+export type RateLimitFormValues = z.output<typeof RateLimitFormSchema>;
 
 // grantCredits response shape (internal/admin/admin.go).
 export const GrantCreditsResponseSchema = z.object({

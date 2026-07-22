@@ -84,6 +84,8 @@ export const accounts = [
     monthly_grant: null,
     effective_monthly_grant: null,
     email: null,
+    rate_limit_per_min: null,
+    effective_rate_limit_per_min: 300,
   },
   {
     id: 502,
@@ -98,6 +100,9 @@ export const accounts = [
     monthly_grant: null,
     effective_monthly_grant: null,
     email: null,
+    // Per-account override set — effective mirrors it, not the class default.
+    rate_limit_per_min: 600,
+    effective_rate_limit_per_min: 600,
   },
   // Auto-provisioned end-user account (allowance-managed, env default $5/mo).
   {
@@ -113,6 +118,8 @@ export const accounts = [
     monthly_grant: null,
     effective_monthly_grant: 5.0,
     email: 'enduser@example.com',
+    rate_limit_per_min: null,
+    effective_rate_limit_per_min: 30,
   },
 ] as const;
 

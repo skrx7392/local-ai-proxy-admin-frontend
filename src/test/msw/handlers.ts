@@ -137,6 +137,14 @@ export const handlers = [
       monthly_grant: body?.monthly_grant ?? null,
     });
   }),
+  http.put(base('/accounts/:id/rate-limit'), async ({ request }) => {
+    // Matches setAccountRateLimit response in internal/admin/admin.go.
+    const body = (await request.json()) as { rate_limit_per_min?: number | null };
+    return HttpResponse.json({
+      status: 'updated',
+      rate_limit_per_min: body?.rate_limit_per_min ?? null,
+    });
+  }),
 
   // ---- Credit requests ----
   http.get(base('/credit-requests'), ({ request }) => {
