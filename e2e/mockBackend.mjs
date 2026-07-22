@@ -65,6 +65,8 @@ const accounts = [
     monthly_grant: null,
     effective_monthly_grant: null,
     email: null,
+    rate_limit_per_min: null,
+    effective_rate_limit_per_min: 300,
   },
   {
     id: 503,
@@ -79,6 +81,8 @@ const accounts = [
     monthly_grant: null,
     effective_monthly_grant: 5.0,
     email: 'enduser@example.com',
+    rate_limit_per_min: null,
+    effective_rate_limit_per_min: 30,
   },
 ];
 
@@ -580,6 +584,13 @@ const server = createServer(async (req, res) => {
     return json(res, 200, {
       status: 'updated',
       monthly_grant: body?.monthly_grant ?? null,
+    });
+  }
+  if (/^\/accounts\/\d+\/rate-limit$/.test(adminPath) && method === 'PUT') {
+    const body = await readJson(req).catch(() => ({}));
+    return json(res, 200, {
+      status: 'updated',
+      rate_limit_per_min: body?.rate_limit_per_min ?? null,
     });
   }
 

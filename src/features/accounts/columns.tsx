@@ -38,6 +38,7 @@ export function buildAccountColumns(options: {
   onGrantCredits: (account: Account) => void;
   onCreateKey: (account: Account) => void;
   onEditAllowance: (account: Account) => void;
+  onEditRateLimit: (account: Account) => void;
 }): ColumnDef<Account, unknown>[] {
   return [
     {
@@ -135,9 +136,30 @@ export function buildAccountColumns(options: {
         ),
     },
     {
+      id: 'rate_limit',
+      header: () => (
+        <HeaderHint
+          label="Rate limit"
+          hint="Requests per minute for this account — the class default unless overridden."
+        />
+      ),
+      cell: ({ row }) => (
+        <VStack align="flex-start" gap="0">
+          <Text data-testid={`account-ratelimit-${row.original.id}`}>
+            {row.original.effective_rate_limit_per_min}/min
+          </Text>
+          {row.original.rate_limit_per_min === null && (
+            <Text fontSize="xs" color="fg.muted">
+              default
+            </Text>
+          )}
+        </VStack>
+      ),
+    },
+    {
       id: 'actions',
       header: '',
-      size: 300,
+      size: 340,
       cell: ({ row }) => (
         <HStack justify="flex-end" gap="1">
           {row.original.allowance_managed && (
@@ -150,6 +172,14 @@ export function buildAccountColumns(options: {
               Allowance
             </Button>
           )}
+          <Button
+            size="xs"
+            variant="ghost"
+            onClick={() => options.onEditRateLimit(row.original)}
+            data-testid={`account-ratelimit-edit-${row.original.id}`}
+          >
+            Rate limit
+          </Button>
           <Button
             size="xs"
             variant="ghost"

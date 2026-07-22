@@ -9,6 +9,7 @@ import { ApiError } from '@/lib/api/errors';
 import { readEnum, readInt, useListSearchParams } from '@/lib/url/listState';
 
 import { AllowanceDialog } from '@/features/accounts/AllowanceDialog';
+import { RateLimitDialog } from '@/features/accounts/RateLimitDialog';
 import { CreateAccountKeyDialog } from '@/features/accounts/CreateAccountKeyDialog';
 import { CreditRequestsStrip } from '@/features/accounts/CreditRequestsStrip';
 import { GrantCreditsDialog } from '@/features/accounts/GrantCreditsDialog';
@@ -18,12 +19,14 @@ import {
   useCreateAccountKey,
   useGrantCredits,
   useSetAllowance,
+  useSetRateLimit,
 } from '@/features/accounts/hooks';
 import type {
   Account,
   AccountKeyFormValues,
   AllowanceFormValues,
   GrantCreditsFormValues,
+  RateLimitFormValues,
 } from '@/features/accounts/schemas';
 
 const TYPE_VALUES = ['all', 'personal', 'service', 'end_user'] as const;
@@ -65,6 +68,11 @@ export default function AccountsPage() {
     undefined,
   );
 
+  const [rateLimitTarget, setRateLimitTarget] = useState<Account | null>(null);
+  const [rateLimitError, setRateLimitError] = useState<string | undefined>(
+    undefined,
+  );
+
   const filters = useMemo(
     () => ({
       limit,
@@ -80,6 +88,7 @@ export default function AccountsPage() {
   const grant = useGrantCredits(grantTarget?.id ?? null);
   const createKey = useCreateAccountKey(keyTarget?.id ?? null);
   const setAllowance = useSetAllowance(allowanceTarget?.id ?? null);
+  const setRateLimit = useSetRateLimit(rateLimitTarget?.id ?? null);
 
   const columns = useMemo(
     () =>
@@ -95,6 +104,10 @@ export default function AccountsPage() {
         onEditAllowance: (account) => {
           setAllowanceError(undefined);
           setAllowanceTarget(account);
+        },
+        onEditRateLimit: (account) => {
+          setRateLimitError(undefined);
+          setRateLimitTarget(account);
         },
       }),
     [],
@@ -131,6 +144,24 @@ export default function AccountsPage() {
 
   function handleAllowanceSubmit(values: AllowanceFormValues): void {
     applyAllowance(values.monthly_grant);
+  }
+
+  function applyRateLimit(rateLimitPerMin: number | null): void {
+    setRateLimitError(undefined);
+    setRateLimit.mutate(rateLimitPerMin, {
+      onSuccess: () => setRateLimitTarget(null),
+      onError: (error) => {
+        setRateLimitError(
+          error instanceof ApiError
+            ? error.message
+            : 'Failed to update rate limit.',
+        );
+      },
+    });
+  }
+
+  function handleRateLimitSubmit(values: RateLimitFormValues): void {
+    applyRateLimit(values.rate_limit_per_min);
   }
 
   function handleCreateKey(values: AccountKeyFormValues): void {
@@ -282,6 +313,21 @@ export default function AccountsPage() {
         onUseDefault={() => applyAllowance(null)}
         isSubmitting={setAllowance.isPending}
         submissionError={allowanceError}
+      />
+
+      <RateLimitDialog
+        isOpen={rateLimitTarget !== null}
+        account={rateLimitTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRateLimitTarget(null);
+            setRateLimitError(undefined);
+          }
+        }}
+        onSubmit={handleRateLimitSubmit}
+        onUseDefault={() => applyRateLimit(null)}
+        isSubmitting={setRateLimit.isPending}
+        submissionError={rateLimitError}
       />
     </Container>
   );

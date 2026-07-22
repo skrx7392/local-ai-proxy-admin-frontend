@@ -12,6 +12,7 @@ import {
   GrantCreditsResponseSchema,
   ResolveCreditRequestResponseSchema,
   SetAllowanceResponseSchema,
+  SetRateLimitResponseSchema,
   type AccountKeyFormValues,
   type CreditRequest,
   type GrantCreditsFormValues,
@@ -172,6 +173,26 @@ export function useSetAllowance(accountId: number | null) {
         body: { monthly_grant: monthlyGrant },
       });
       return SetAllowanceResponseSchema.parse(raw);
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: qk.accounts.all });
+    },
+  });
+}
+
+// Sets (number) or clears (null → class env default) an account's request
+// rate-limit override. Unlike the allowance, this takes effect on the
+// account's next request (docs/design/per-account-rate-limiting.md §4.2).
+export function useSetRateLimit(accountId: number | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (rateLimitPerMin: number | null) => {
+      if (accountId === null) throw new Error('accountId is required');
+      const raw = await apiFetch<unknown>(`/accounts/${accountId}/rate-limit`, {
+        method: 'PUT',
+        body: { rate_limit_per_min: rateLimitPerMin },
+      });
+      return SetRateLimitResponseSchema.parse(raw);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: qk.accounts.all });

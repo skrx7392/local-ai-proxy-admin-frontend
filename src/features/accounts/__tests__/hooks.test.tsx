@@ -15,6 +15,7 @@ import {
   useGrantCredits,
   useResolveCreditRequest,
   useSetAllowance,
+  useSetRateLimit,
   useTopUpCreditRequest,
 } from '../hooks';
 import type { CreditRequest } from '../schemas';
@@ -368,6 +369,65 @@ describe('useSetAllowance', () => {
     });
     // The null must be spelled out on the wire — {} would be a silent no-op.
     expect(body).toEqual({ monthly_grant: null });
+  });
+});
+
+describe('useSetRateLimit', () => {
+  useMockBackend();
+
+  it('PUTs a numeric override', async () => {
+    let body: unknown;
+    server.use(
+      http.put('*/api/admin/accounts/:id/rate-limit', async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ status: 'updated', rate_limit_per_min: 45 });
+      }),
+    );
+    const { result } = renderHook(() => useSetRateLimit(503), {
+      wrapper: wrapper(),
+    });
+    let out: { rate_limit_per_min: number | null } | undefined;
+    await act(async () => {
+      out = await result.current.mutateAsync(45);
+    });
+    expect(body).toEqual({ rate_limit_per_min: 45 });
+    expect(out?.rate_limit_per_min).toBe(45);
+  });
+
+  it('PUTs an explicit null to revert to the class default', async () => {
+    let body: unknown;
+    server.use(
+      http.put('*/api/admin/accounts/:id/rate-limit', async ({ request }) => {
+        body = await request.json();
+        return HttpResponse.json({ status: 'updated', rate_limit_per_min: null });
+      }),
+    );
+    const { result } = renderHook(() => useSetRateLimit(503), {
+      wrapper: wrapper(),
+    });
+    await act(async () => {
+      await result.current.mutateAsync(null);
+    });
+    // The null must be spelled out on the wire — {} is a backend 400.
+    expect(body).toEqual({ rate_limit_per_min: null });
+  });
+
+  it('refetches the accounts list on success', async () => {
+    const { client, Wrapper } = wrapperWithClient();
+    const invalidated: unknown[] = [];
+    const original = client.invalidateQueries.bind(client);
+    client.invalidateQueries = ((filters: { queryKey?: unknown }) => {
+      invalidated.push(filters?.queryKey);
+      return original(filters as never);
+    }) as typeof client.invalidateQueries;
+
+    const { result } = renderHook(() => useSetRateLimit(503), {
+      wrapper: Wrapper,
+    });
+    await act(async () => {
+      await result.current.mutateAsync(45);
+    });
+    expect(invalidated).toContainEqual(['accounts']);
   });
 });
 
