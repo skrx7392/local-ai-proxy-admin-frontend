@@ -9,10 +9,10 @@ spec:
   ingressClassName: traefik
   tls:
     - hosts:
-        - admin.ai.skpodduturi.dev
+        - admin-ai.skpodduturi.dev
       secretName: admin-frontend-skpodduturi-tls
   rules:
-    - host: admin.ai.skpodduturi.dev
+    - host: admin-ai.skpodduturi.dev
       http:
         paths:
           - path: /
