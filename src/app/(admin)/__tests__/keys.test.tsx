@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { server } from '@/test/msw/server';
 import { useMockBackend } from '@/test/msw/useMockBackend';
@@ -83,6 +83,19 @@ describe('/keys — revoke confirmation', () => {
 
 describe('/keys — last used column', () => {
   useMockBackend();
+
+  // Key 101's fixture last_used_at is a fixed date, so the relative rendering
+  // drifts with the wall clock: past ~a month Intl.RelativeTimeFormat switches
+  // from "N days ago" to "last month", which no longer matches /ago|now/. Pin
+  // the clock just after the fixture so the assertion is time-invariant. The
+  // absolute title is asserted against the same fixed date, so the fixture
+  // itself has to stay fixed — freezing now is the only stable option.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-09T08:30:00Z') });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
   it('renders relative time with the absolute value on hover', async () => {
     const { findByTestId } = wrap(<KeysPage />);
